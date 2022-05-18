@@ -105,25 +105,25 @@ CORS_ALLOW_CREDENTIALS = True
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-
-# Heroku Production DB
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'd63fec2vfh3kel',
-        'USER': 'xzpunfapeqaqqo',
-        'PASSWORD': '2f3afa152ec072d81690c3eeed9f42aa7c6fc861d45b3938e991f2c85732270a',
-        'HOST': 'ec2-52-3-2-245.compute-1.amazonaws.com',
-        'PORT': '5432'
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+# # Heroku Production DB
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'd63fec2vfh3kel',
+#         'USER': 'xzpunfapeqaqqo',
+#         'PASSWORD': '2f3afa152ec072d81690c3eeed9f42aa7c6fc861d45b3938e991f2c85732270a',
+#         'HOST': 'ec2-52-3-2-245.compute-1.amazonaws.com',
+#         'PORT': '5432'
+#     }
+# }
 
 
 
