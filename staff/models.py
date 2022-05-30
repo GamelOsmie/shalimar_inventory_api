@@ -7,12 +7,31 @@ from django.template.defaultfilters import slugify
 
 
 class Staff(models.Model):
-    station = (
-        ('general', 'General'),
-        ('branch', 'Branch'),
-        ('warehouse', 'Warehouse'),
-        ('service shop', 'Service Shop'),
+    designation_options = (
+        ('General Office', 'General Office'),
+        ('Branch', 'Branch'),
+        ('Warehouse', 'Warehouse'),
+        ('Service Shop', 'Service Shop'),
     )
+
+    
+    role_options = (
+        ('Accountant', 'Accountant'),
+        ('HR', 'HR'),
+        ('Sales Executive', 'Sales Executive'),
+        ('Credit Officer', 'Credit Officer'),
+    )
+    
+    
+    qualification_options = (
+        ('WASSCE', 'WASSCE'),
+        ('Diploma', 'Diploma'),
+        ('HND', 'HND'),
+        ('Bachelors Degree', 'Bachelors Degree'),
+        ('Masters Degree', 'Masters Degree'),
+        ('Other', 'Other'),
+    )
+    
 
     id = models.UUIDField(primary_key=True, unique=True,
                           default=uuid.uuid4, editable=False)
@@ -20,20 +39,20 @@ class Staff(models.Model):
     first_name = models.CharField(max_length=50, blank=False)
     middle_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=False)
-    dob = models.DateField()
+    dob = models.DateField(blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=False)
     email = models.CharField(max_length=200, blank=False)
 
-    designation = models.CharField(max_length=50, blank=False, choices=station)
+    designation = models.CharField(max_length=50, blank=False, choices=designation_options)
     workplace = models.CharField(max_length=50, blank=False)
-    role = models.CharField(max_length=50, blank=False)
+    role = models.CharField(max_length=50, blank=False, choices=role_options)
 
-    qualification = models.CharField(max_length=50, blank=True)
+    qualification = models.CharField(max_length=50, blank=False, choices=qualification_options)
     institution = models.CharField(max_length=100, blank=True)
 
     salary = models.CharField(max_length=20, blank=True, null=True)
 
-    date_joined = models.DateField()
+    date_joined = models.DateField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         fullname = "{}-{}".format(self.first_name, self.last_name)
@@ -46,22 +65,22 @@ class Staff(models.Model):
     class Meta:
         ordering = [Lower("first_name"), "-date_joined"]
 
-    @property
     def fullname(self):
         if self.first_name == None:
             first_name = ""
         else:
             first_name = self.first_name
 
-        if self.first_name == None:
+        if self.middle_name == None:
             middle_name = ""
         else:
             middle_name = self.middle_name
 
-        if self.first_name == None:
+        if self.last_name == None:
             last_name = ""
         else:
             last_name = self.last_name
-
+            
         name = f"{first_name} {middle_name} {last_name}"
+
         return name

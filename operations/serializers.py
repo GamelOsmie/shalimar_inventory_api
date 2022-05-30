@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from units.serializers import BranchSerializer, WarehouseSerializer
-from .models import BranchOperation, CommercialInvoice, ProformaInvoice, ServiceShopOperation, Shipment, Container, WareSupply, WarehouseOperation
+from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WareSupply
 from vehicles.serializers import VehicleSerializer
 
 
@@ -15,12 +15,12 @@ class CommercialInvoiceSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        response["liked_proforma_invoice"] = ProformaInvoiceSerializer(instance.liked_proforma_invoice).data
+        response["linked_proforma_invoice"] = ProformaInvoiceSerializer(instance.liked_proforma_invoice).data
         return response
         
 
 class ProformaInvoiceSerializer(serializers.ModelSerializer):
-    linked_commercial_invoice = CommercialInvoiceSerializer(source='associated_commercial_invoice', many=False, read_only=True)
+    # linked_commercial_invoice = CommercialInvoiceSerializer(source='associated_commercial_invoice', many=False, read_only=True)
     
     class Meta:
         model = ProformaInvoice
@@ -63,68 +63,6 @@ class ShipmentDetailSerializer(serializers.ModelSerializer):
 
 
 
-class BranchOperationSerializer(serializers.ModelSerializer):
-    vehicles_in_stock_count = serializers.ReadOnlyField()
-    vehicles_damaged_count = serializers.ReadOnlyField()
-    vehicles_missing_count = serializers.ReadOnlyField()
-    
-    spare_part_in_stock_count = serializers.ReadOnlyField()
-    spare_part_damaged_count = serializers.ReadOnlyField()
-    spare_part_missing_count = serializers.ReadOnlyField()
-    
-    class Meta:
-        model = BranchOperation
-        fields = "__all__"
-        
-    
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response["branch"] = BranchSerializer(instance.branch).data
-        return response
-
-    
-
-class WarehouseOperationSerializer(serializers.ModelSerializer):
-    vehicles_in_stock_count = serializers.ReadOnlyField()
-    vehicles_damaged_count = serializers.ReadOnlyField()
-    vehicles_missing_count = serializers.ReadOnlyField()
-    
-    spare_part_in_stock_count = serializers.ReadOnlyField()
-    spare_part_damaged_count = serializers.ReadOnlyField()
-    spare_part_missing_count = serializers.ReadOnlyField()
-    
-    class Meta:
-        model = WarehouseOperation
-        fields = "__all__"
-        
-    
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response["warehouse"] = WarehouseSerializer(instance.warehouse).data
-        return response
-
-
-class ServiceShopOperationSerializer(serializers.ModelSerializer):
-    vehicles_in_stock_count = serializers.ReadOnlyField()
-    vehicles_damaged_count = serializers.ReadOnlyField()
-    vehicles_missing_count = serializers.ReadOnlyField()
-    
-    spare_part_in_stock_count = serializers.ReadOnlyField()
-    spare_part_damaged_count = serializers.ReadOnlyField()
-    spare_part_missing_count = serializers.ReadOnlyField()
-    
-    class Meta:
-        model = ServiceShopOperation
-        fields = "__all__"
-        
-    
-    def to_representation(self, instance):
-        response = super().to_representation(instance)
-        response["service_shop"] = ServiceShopOperationSerializer(instance.service_shop).data
-        return response
-
-
-
 class WarehouseSupplySerializer(serializers.ModelSerializer):
     
     class Meta:
@@ -134,7 +72,7 @@ class WarehouseSupplySerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        response["warehouse"] = WarehouseOperationSerializer(instance.warehouse.all(), many=True).data['warehouse']['name']
+        response["warehouse"] = WarehouseSerializer(instance.warehouse.all(), many=True).data['warehouse']['name']
         response["container"] = ContainerSerializer(instance.container.all(), many=True).data['container_number']
         return response
 

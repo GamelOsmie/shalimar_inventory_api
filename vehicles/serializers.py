@@ -55,11 +55,7 @@ class VehicleSerializer(ModelSerializer):
         response = super().to_representation(instance)
         response['model'] = VehicleModelSerializer(instance.model).data['name']
         response['brand'] = VehicleModelSerializer(instance.model).data['brand']
-        response['purchase_price'] = VehicleModelSerializer(instance.model).data['purchase_price']
-        response['retail_price'] = VehicleModelSerializer(instance.model).data['retail_price']
-        response['finance_sale_price'] = VehicleModelSerializer(instance.model).data['finance_sale_price']
-        response['corporate_sale_price'] = VehicleModelSerializer(instance.model).data['corporate_sale_price']
-        response['wholesale_price'] = VehicleModelSerializer(instance.model).data['wholesale_price']
+        response['tax'] = TaxSerializer(instance.tax).data['rate']
         return response
         
 
@@ -88,11 +84,6 @@ class SparePartSerializer(ModelSerializer):
         response = super().to_representation(instance)
         response['model'] = SparePartModelSerializer(instance.model).data['name']
         response['brand'] = SparePartModelSerializer(instance.model).data['brand']
-        response['purchase_price'] = SparePartModelSerializer(instance.model).data['purchase_price']
-        response['retail_price'] = SparePartModelSerializer(instance.model).data['retail_price']
-        response['finance_sale_price'] = SparePartModelSerializer(instance.model).data['finance_sale_price']
-        response['corporate_sale_price'] = SparePartModelSerializer(instance.model).data['corporate_sale_price']
-        response['wholesale_price'] = SparePartModelSerializer(instance.model).data['wholesale_price']
         response['tax'] = TaxSerializer(instance.tax).data['rate']
         return response
         

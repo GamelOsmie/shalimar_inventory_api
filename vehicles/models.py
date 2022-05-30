@@ -42,11 +42,11 @@ class Model(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.PROTECT, related_name="brands")
     name = models.CharField(max_length=50, unique=True)
     
-    purchase_price = models.IntegerField(blank=True, default=0)
-    retail_price = models.IntegerField(blank=True, default=0)
-    wholesale_price = models.IntegerField(blank=True, default=0)
-    finance_sale_price = models.IntegerField(blank=True, default=0)
-    corporate_sale_price = models.IntegerField(blank=True, default=0)
+    purchase_price = models.CharField( max_length=10, blank=True, default=0)
+    retail_price = models.CharField( max_length=10, blank=True, default=0)
+    wholesale_price = models.CharField( max_length=10, blank=True, default=0)
+    finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
+    corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
     
     tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
     
@@ -91,6 +91,12 @@ class Vehicle(models.Model):
     
     last_moved = models.DateTimeField(auto_now=True)
     
+    purchase_price = models.CharField( max_length=10, blank=True, default=0)
+    retail_price = models.CharField( max_length=10, blank=True, default=0)
+    wholesale_price = models.CharField( max_length=10, blank=True, default=0)
+    finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
+    corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
+    
     
     def save(self, *args, **kwargs):
         self.slug = slugify(self.chassis_number)
@@ -113,11 +119,11 @@ class SparePartType(models.Model):
     model = models.ForeignKey(Model, on_delete=models.PROTECT, blank=False, related_name="sparepart_models")         
     part = models.CharField(max_length=100, blank=False)
   
-    purchase_price = models.IntegerField(blank=True, default=0)
-    retail_price = models.IntegerField(blank=True, default=0)
-    wholesale_price = models.IntegerField(blank=True, default=0)
-    finance_sale_price = models.IntegerField(blank=True, default=0)
-    corporate_sale_price = models.IntegerField(blank=True, default=0)
+    purchase_price = models.CharField( max_length=10, blank=True, default=0)
+    retail_price = models.CharField( max_length=10, blank=True, default=0)
+    wholesale_price = models.CharField( max_length=10, blank=True, default=0)
+    finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
+    corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
     
     tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
 
@@ -155,6 +161,12 @@ class SparePart(models.Model):
     custodian = models.CharField(max_length=100, blank=True, null=True)
 
     last_moved = models.DateTimeField(auto_now=True)
+    
+    purchase_price = models.CharField( max_length=10, blank=True, default=0)
+    retail_price = models.CharField( max_length=10, blank=True, default=0)
+    wholesale_price = models.CharField( max_length=10, blank=True, default=0)
+    finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
+    corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
    
     def save(self, *args, **kwargs):
         self.slug = slugify(self.part)

@@ -1,5 +1,4 @@
-from operator import contains
-from os import link
+
 from django.db import models
 from django.template.defaultfilters import slugify
 from units.models import Branch, ServiceShop, Warehouse
@@ -12,7 +11,7 @@ from shortuuid.django_fields import ShortUUIDField
 class ProformaInvoice(models.Model):
    
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    invoice_number = models.CharField(max_length=30)
+    invoice_number = models.CharField(max_length=30, unique=True)
     invoice_date = models.DateField()
     document = models.FileField(upload_to='invoices/proforma')
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -24,17 +23,17 @@ class ProformaInvoice(models.Model):
     class Meta:
         ordering = ["-uploaded_at"]
         
-    def associated_commercial_invoice(self):
-        return self.commercial_invoices.all()
+    # def associated_commercial_invoice(self):
+    #     return self.commercial_invoices.all()
         
 
 class CommercialInvoice(models.Model):
    
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    invoice_number = models.CharField(max_length=30)
+    invoice_number = models.CharField(max_length=30, unique=True)
     invoice_date = models.DateField()
     linked_proforma_invoice = models.OneToOneField(ProformaInvoice, on_delete=models.PROTECT, related_name="commercial_invoices", blank=False)
-    document = models.FileField(upload_to='invoices/proforma')
+    document = models.FileField(upload_to='invoices/commercial')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -143,137 +142,7 @@ class Container(models.Model):
         return self.spare_parts.count()
 
 
-    
-class BranchOperation(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    
-    branch = models.OneToOneField(Branch, on_delete=models.PROTECT, related_name="branches")
-    
-    vehicles_in_stock = models.ManyToManyField(Vehicle, related_name ='branch_vehicles_in_stock', blank=True )
-    vehicles_damaged = models.ManyToManyField(Vehicle, related_name ='branch_vehicles_damaged', blank=True )    
-    vehicles_damaged = models.ManyToManyField(Vehicle, related_name ='branch_vehicles_missing', blank=True )
-    
-    
-    spare_parts_in_stock = models.ManyToManyField(SparePart, related_name ='branch_spare_parts_in_stock', blank=True )
-    spare_parts_damaged = models.ManyToManyField(SparePart, related_name ='branch_spare_parts_damaged', blank=True )    
-    spare_parts_damaged = models.ManyToManyField(SparePart, related_name ='branch_spare_parts_missing', blank=True )
-    
-    class Meta:
-        ordering = [Lower('branch__name')]
-        
-        
 
-    def vehicles_in_stock_count(self):
-        return self.vehicles_in_stock.count()
-
-
-    def vehicles_damaged_count(self):
-        return self.vehicles_damaged.count()
-
-
-    def vehicles_missing_count(self):
-        return self.vehicles_missing.count()
-
-
-    def spare_part_in_stock_count(self):
-        return self.spare_part_in_stock.count()
-
-
-    def spare_part_damaged_count(self):
-        return self.spare_part_damaged.count()
-
-
-    def spare_part_missing_count(self):
-        return self.spare_part_missing.count()
-   
-
-     
-        
-class WarehouseOperation(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    
-    warehouse = models.OneToOneField(Warehouse, on_delete=models.PROTECT, related_name="warehouses")
-    
-    vehicles_in_stock = models.ManyToManyField(Vehicle, related_name ='warehouse_vehicles_in_stock', blank=True )
-    vehicles_damaged = models.ManyToManyField(Vehicle, related_name ='warehouse_vehicles_damaged', blank=True )    
-    vehicles_missing = models.ManyToManyField(Vehicle, related_name ='warehouse_vehicles_missing', blank=True )
-    
-    spare_parts_in_stock = models.ManyToManyField(SparePart, related_name ='warehouse_spare_parts_in_stock', blank=True )
-    spare_parts_damaged = models.ManyToManyField(SparePart, related_name ='warehouse_spare_parts_damaged', blank=True )    
-    spare_parts_missing = models.ManyToManyField(SparePart, related_name ='warehouse_spare_parts_missing', blank=True )
-     
-
-    class Meta:
-        ordering = [Lower('warehouse__name')]
-     
-
-    def vehicles_in_stock_count(self):
-        return self.vehicles_in_stock.count()
-
-
-    def vehicles_damaged_count(self):
-        return self.vehicles_damaged.count()
-
-
-    def vehicles_missing_count(self):
-        return self.vehicles_missing.count()
-
-
-    def spare_part_in_stock_count(self):
-        return self.spare_part_in_stock.count()
-
-
-    def spare_part_damaged_count(self):
-        return self.spare_part_damaged.count()
-
-
-    def spare_part_missing_count(self):
-        return self.spare_part_missing.count()
-    
-    
-     
-class ServiceShopOperation(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    
-    service_shop = models.OneToOneField(ServiceShop, on_delete=models.PROTECT, related_name="service_shops")
-    
-    vehicles_in_stock = models.ManyToManyField(Vehicle, related_name ='service_shop_vehicles_in_stock', blank=True )
-    vehicles_damaged = models.ManyToManyField(Vehicle, related_name ='service_shop_vehicles_damaged', blank=True )    
-    vehicles_missing = models.ManyToManyField(Vehicle, related_name ='service_shop_vehicles_missing', blank=True )
-    
-    spare_parts_in_stock = models.ManyToManyField(SparePart, related_name ='service_shop_spare_parts_in_stock', blank=True )
-    spare_parts_damaged = models.ManyToManyField(SparePart, related_name ='service_shop_spare_parts_damaged', blank=True )    
-    spare_parts_missing = models.ManyToManyField(SparePart, related_name ='service_shop_spare_parts_missing', blank=True )
-     
-
-    class Meta:
-        ordering = [Lower('warehouse__name')]
-     
-
-    def vehicles_in_stock_count(self):
-        return self.vehicles_in_stock.count()
-
-
-    def vehicles_damaged_count(self):
-        return self.vehicles_damaged.count()
-
-
-    def vehicles_missing_count(self):
-        return self.vehicles_missing.count()
-
-
-    def spare_part_in_stock_count(self):
-        return self.spare_part_in_stock.count()
-
-
-    def spare_part_damaged_count(self):
-        return self.spare_part_damaged.count()
-
-
-    def spare_part_missing_count(self):
-        return self.spare_part_missing.count()
-    
-    
     
 class WareSupply(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)

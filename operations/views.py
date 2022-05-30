@@ -1,9 +1,10 @@
-from tabnanny import check
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, RetrieveAPIView,ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
-from .models import  BranchOperation, CommercialInvoice, ProformaInvoice, ServiceShopOperation, Shipment, Container, WareSupply, WarehouseOperation
-from .serializers import  BranchOperationSerializer, CommercialInvoiceSerializer, ProformaInvoiceSerializer, ServiceShopOperationSerializer, ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseOperationSerializer, WarehouseSupplySerializer
+
+from units.models import Warehouse
+from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WareSupply
+from .serializers import  CommercialInvoiceSerializer, ProformaInvoiceSerializer,  ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseSupplySerializer
 from vehicles.serializers import BrandSerializer, SparePartSerializer, VehicleSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -12,20 +13,35 @@ import datetime
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from vehicles.models import Brand, Model, SparePart, SparePartType, Vehicle
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.filters import SearchFilter
+
+
+class CustomPaginator(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 10000
+
 
 
 class CommercialInvoiceListView(ListCreateAPIView):
     queryset = CommercialInvoice.objects.all()
     serializer_class = CommercialInvoiceSerializer
+    pagination_class = CustomPaginator
     parser_classes = [MultiPartParser, FormParser]
+    filter_backends = (SearchFilter,)
+    search_fields = ('invoice_number',)
     # permission_classes = [AdminsOnly]
     
-
 
 class ProformaInvoiceListView(ListCreateAPIView):
     queryset = ProformaInvoice.objects.all()
     serializer_class = ProformaInvoiceSerializer
+    pagination_class = CustomPaginator
     parser_classes = [MultiPartParser, FormParser]
+    filter_backends = (SearchFilter,)
+    search_fields = ('invoice_number',)
     # permission_classes = [AdminsOnly]
 
 
@@ -49,7 +65,7 @@ class ShipmentDetailView(RetrieveUpdateAPIView):
     # permission_classes = [AdminsOnly]
 
 
-class ContainerListView(ListCreateAPIView):
+class ContainerListView(ListAPIView):
     queryset = Container.objects.all()
     serializer_class = ContainerSerializer
     # permission_classes = [AdminsOnly]
@@ -69,7 +85,7 @@ class ContainerCreateView(APIView):
 
 
         #get all vehicle models and part types so you don't hit database multiple times
-        models = Model.objects.all()
+        models = Model.objects.select_related('brand').all()
         part_type = SparePartType.objects.all()
         
         
@@ -140,7 +156,12 @@ class ContainerCreateView(APIView):
                     chassis_number=chassis_number,
                     engine_number=engine_number,
                     color=color,
-                    slug=chassis_number
+                    slug=chassis_number,
+                    purchase_price=get_model['purchase_price'],
+                    retail_price=get_model['retail_price'],
+                    wholesale_price=get_model['wholesale_price'],
+                    finance_sale_price=get_model['finance_sale_price'],
+                    corporate_sale_price=get_model['corporate_sale_price']
                 )
             )
         
@@ -160,6 +181,11 @@ class ContainerCreateView(APIView):
                 SparePart(
                     part_type_id=get_part_type['id'],
                     part_number=part_number,
+                    purchase_price=get_part_type['purchase_price'],
+                    retail_price=get_part_type['retail_price'],
+                    wholesale_price=get_part_type['wholesale_price'],
+                    finance_sale_price=get_part_type['finance_sale_price'],
+                    corporate_sale_price=get_part_type['corporate_sale_price']
                 )
             )
           
@@ -217,48 +243,7 @@ class ContainerDetailView(RetrieveUpdateAPIView):
     look_field = "slug"
     # permission_classes = [AdminsOnly]
 
-
-class BranchOperationsListView(ListCreateAPIView):
-    queryset = BranchOperation.objects.all()
-    serializer_class = BranchOperationSerializer
-    # permission_classes = [AdminsOnly]
-    
-
-class BranchOperationsDetailView(RetrieveUpdateAPIView):
-    queryset = BranchOperation.objects.all()
-    serializer_class = BranchOperationSerializer
-    # permission_classes = [AdminsOnly]
-    lookup_field = "id"
-
-
-class WarehouseOperationsListView(ListAPIView):
-    queryset = WarehouseOperation.objects.all()
-    serializer_class = WarehouseOperationSerializer
-    # permission_classes = [AdminsOnly]
-    
-
-class WarehouseOperationsDetailView(RetrieveUpdateAPIView):
-    queryset = WarehouseOperation.objects.all()
-    serializer_class = WarehouseOperationSerializer
-    # permission_classes = [AdminsOnly]
-    lookup_field = "id"
-    
-    
-
-
-class ServiceShopOperationsListView(ListAPIView):
-    queryset = ServiceShopOperation.objects.all()
-    serializer_class = ServiceShopOperationSerializer
-    # permission_classes = [AdminsOnly]
-    
-
-class ServiceShopOperationsDetailView(RetrieveUpdateAPIView):
-    queryset = ServiceShopOperation.objects.all()
-    serializer_class = ServiceShopOperationSerializer
-    # permission_classes = [AdminsOnly]
-    lookup_field = "id"
-    
-    
+   
     
 class WarehouseSupplyListView(ListAPIView):
     queryset =  WareSupply.objects.all()
@@ -318,7 +303,7 @@ class WarehouseSupplyReceiveView(APIView):
         supply_query.save()
         
         # now find the warehouse that is meant to received their products and populate it
-        warehouse_query = WarehouseOperation.objects.get(id=request.data['id'])
+        warehouse_query = Warehouse.objects.get(id=request.data['id'])
         
         # get the list of vehicles and spare parts already available in the warehouse
         warehouse_vehicles_in_stock = list(warehouse_query.vehicles_in_stock.values())

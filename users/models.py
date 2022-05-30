@@ -1,7 +1,4 @@
-from typing import List
-
-from django.contrib.auth.models import (AbstractUser, BaseUserManager,
-                                        PermissionsMixin)
+from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.db.models.functions import Lower
 from django.template.defaultfilters import slugify
@@ -54,7 +51,7 @@ class User(AbstractUser, PermissionsMixin):
         TRACKING_OFFICER = 'Tracking Officer', ('Tracking Officer')
         WAREHOUSE_OFFICER = 'Warehouse Officer', ('Warehouse Officer')
         BRANCH_OFFICER = 'Branch Officer', ('Branch Officer')
-        SERVICE_STATION_OFFICER = 'Service Station Officer', ('Service Station Officer')
+        SERVICE_STATION_OFFICER = 'Service Shop Officer', ('Service Shop Officer')
         WEBSITE_MANAGER = 'Website Manager', ('Website Manager')
 
     slug = models.SlugField(max_length=50, blank=True)

@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     
     # 3rd party apps
     'corsheaders',
-    # 'drf_yasg',
+    'drf_yasg',
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',

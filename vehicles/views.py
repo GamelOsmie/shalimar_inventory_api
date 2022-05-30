@@ -10,7 +10,7 @@ class TaxListView(ListCreateAPIView):
     serializer_class = TaxSerializer
 
 
-class TaxDetailView(UpdateAPIView):
+class TaxDetailView(RetrieveUpdateAPIView):
     queryset = Tax.objects.all()
     serializer_class = TaxSerializer
     lookup_field = "id"
