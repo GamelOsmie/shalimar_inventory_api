@@ -23,8 +23,7 @@ class ProformaInvoice(models.Model):
     class Meta:
         ordering = ["-uploaded_at"]
         
-    # def associated_commercial_invoice(self):
-    #     return self.commercial_invoices.all()
+
         
 
 class CommercialInvoice(models.Model):

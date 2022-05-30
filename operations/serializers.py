@@ -20,8 +20,7 @@ class CommercialInvoiceSerializer(serializers.ModelSerializer):
         
 
 class ProformaInvoiceSerializer(serializers.ModelSerializer):
-    # linked_commercial_invoice = CommercialInvoiceSerializer(source='associated_commercial_invoice', many=False, read_only=True)
-    
+   
     class Meta:
         model = ProformaInvoice
         fields = "__all__"
