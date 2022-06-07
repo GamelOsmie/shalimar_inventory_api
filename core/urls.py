@@ -12,7 +12,7 @@ schema_view = get_schema_view(
     openapi.Info(
         title="Shalimar API",
         default_version='v1',
-        description="Project 2.0 SMS API Documentation",
+        description="Shalimar API Documentation",
         #   terms_of_service="https://www.google.com/policies/terms/",
         #   contact=openapi.Contact(email="contact@snippets.local"),
         #   license=openapi.License(name="BSD License"),

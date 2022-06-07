@@ -15,7 +15,7 @@ class CommercialInvoiceSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        response["linked_proforma_invoice"] = ProformaInvoiceSerializer(instance.liked_proforma_invoice).data
+        response["linked_proforma_invoice"] = ProformaInvoiceSerializer(instance.linked_proforma_invoice).data
         return response
         
 
@@ -24,9 +24,16 @@ class ProformaInvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProformaInvoice
         fields = "__all__"
-        
-        
+ 
+ 
+class ShipmentListSerializer(serializers.ModelSerializer):
+    container_count = serializers.ReadOnlyField()
+ 
+    class Meta:
+        model = Shipment
+        fields = ["id", "slug", "batch_number", "port_of_origin", "port_of_destination", "eta", "container_count", "container_exist_port", "departed_at"]
 
+    
 
 class ContainerSerializer(serializers.ModelSerializer):
     vehicle_count = serializers.ReadOnlyField()
@@ -42,14 +49,8 @@ class ContainerSerializer(serializers.ModelSerializer):
         response = super().to_representation(instance)
         response["vehicles"] = VehicleSerializer(instance.vehicles.all(), many=True).data
         response["spare_parts"] = VehicleSerializer(instance.spare_parts.all(), many=True).data
+        response["shipment_batch"] = ShipmentListSerializer(instance.shipment_batch).data['batch_number']
         return response
-
-
-class ShipmentListSerializer(serializers.ModelSerializer):
- 
-    class Meta:
-        model = Shipment
-        fields = ["id","slug","batch_number", "port_of_origin", "port_of_destination", "eta"]
 
 
 class ShipmentDetailSerializer(serializers.ModelSerializer):
@@ -59,6 +60,13 @@ class ShipmentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shipment
         fields = ("__all__")
+        
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response["proforma_invoice"] = ProformaInvoiceSerializer(instance.proforma_invoice).data
+        response["commercial_invoice"] = CommercialInvoiceSerializer(instance.commercial_invoice).data
+        return response
+
 
 
 

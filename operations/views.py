@@ -19,7 +19,7 @@ from rest_framework.filters import SearchFilter
 
 
 class CustomPaginator(PageNumberPagination):
-    page_size = 10
+    page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 10000
 
@@ -49,6 +49,10 @@ class ProformaInvoiceListView(ListCreateAPIView):
 class ShipmentListView(ListCreateAPIView):
     queryset = Shipment.objects.all()
     serializer_class = ShipmentListSerializer
+    pagination_class = CustomPaginator
+    filter_backends = [SearchFilter]
+    search_fields = ('batch_number', 'port_of_origin', 'port_of_destination', 'bill_of_lading_number',
+                     'proforma_invoice__invoice_number', 'commercial_invoice__invoice_number')
     # permission_classes = [AdminsOnly]
     
     
@@ -77,10 +81,11 @@ class ContainerCreateView(APIView):
         # specify where to save the uploaded files
         fs = FileSystemStorage(location='tmp/')
         
+        print(request.data['container_number'])
+        
         # create a container instance and save. this will be updated with vehicles and spare parts later
-        container = Container(
-            container_number = request.data['container_number']
-        )
+        container_number = request.data['container_number']
+        container = Container(container_number = container_number)
         container.save()
 
 
@@ -92,9 +97,9 @@ class ContainerCreateView(APIView):
         # get the just saved container and store in an instance to so it can be updated
         saved_container = Container.objects.get(container_number = request.data['container_number'])
         
-        # get the uploaded vehicles and spareparts
+        # get the uploaded vehicles and spare parts
         uploaded_vehicles = self.request.FILES.get("vehicles")
-        uploaded_spare_parts = self.request.FILES.get("spare_parts")
+        # uploaded_spare_parts = self.request.FILES.get("spare_parts")
 
 
         # read and save the csv file in memory
@@ -104,33 +109,33 @@ class ContainerCreateView(APIView):
             "_tmp.csv", vehicles_content
         )
         
-        uploaded_spare_parts_content = uploaded_spare_parts.read()
-        spare_parts_content = ContentFile(uploaded_spare_parts_content)
-        spare_parts_batch_name = fs.save(
-            "_tmp.csv", spare_parts_content
-        )
+        # uploaded_spare_parts_content = uploaded_spare_parts.read()
+        # spare_parts_content = ContentFile(uploaded_spare_parts_content)
+        # spare_parts_batch_name = fs.save(
+        #     "_tmp.csv", spare_parts_content
+        # )
 
         
         # get the tmp using the batch name
         vehicles_tmp_file = fs.path(vehicles_batch_name)
-        spare_parts_tmp_file = fs.path(spare_parts_batch_name)
+        # spare_parts_tmp_file = fs.path(spare_parts_batch_name)
 
         # open the csv file, read and skip the first row which is the table headers
         vehicles_csv_file = open(vehicles_tmp_file, errors="ignore")
         vehicles_reader = csv.reader(vehicles_csv_file)
         next(vehicles_reader)
         
-        spare_parts_csv_file = open(spare_parts_tmp_file, errors="ignore")
-        spare_parts_reader = csv.reader(spare_parts_csv_file)
-        next(spare_parts_reader)
+        # spare_parts_csv_file = open(spare_parts_tmp_file, errors="ignore")
+        # spare_parts_reader = csv.reader(spare_parts_csv_file)
+        # next(spare_parts_reader)
 
         # list of vehicles that will be saved
         vehicles_list = []
-        spare_parts_list = []
+        # spare_parts_list = []
         
         # list of chassis number and part numbers that will be used to update the list of vehicles in the container
         vehicle_chassis = []
-        spare_part_numbers = []
+        # spare_part_numbers = []
         
         # brand types to determine if the vehicle has mixed content or not
         brand_types = []
@@ -148,7 +153,7 @@ class ContainerCreateView(APIView):
             
             # get the specific model and add the id to be saved
             get_model = models.filter(name=model).values().first()
-            brand_types.append(get_model['brand'])
+            brand_types.append(get_model['brand_id'])
             
             vehicles_list.append(
                 Vehicle(
@@ -165,82 +170,89 @@ class ContainerCreateView(APIView):
                 )
             )
         
-        # go over the spare parts to save it
-        for row in enumerate(spare_parts_reader):
+        # # go over the spare parts to save it
+        # for row in enumerate(spare_parts_reader):
 
-            part_number = row[1][0]
-            part_type = row[1][1]
+        #     part_number = row[1][0]
+        #     part_type = row[1][1]
            
-            spare_part_numbers.append(part_number)
+        #     spare_part_numbers.append(part_number)
 
-            # get the specific model and add the id to be saved
-            get_part_type = SparePartType.filter(part=part_type).values().first()
+        #     # get the specific model and add the id to be saved
+        #     get_part_type = SparePartType.filter(part=part_type).values().first()
 
             
-            spare_parts_list.append(
-                SparePart(
-                    part_type_id=get_part_type['id'],
-                    part_number=part_number,
-                    purchase_price=get_part_type['purchase_price'],
-                    retail_price=get_part_type['retail_price'],
-                    wholesale_price=get_part_type['wholesale_price'],
-                    finance_sale_price=get_part_type['finance_sale_price'],
-                    corporate_sale_price=get_part_type['corporate_sale_price']
-                )
-            )
+        #     spare_parts_list.append(
+        #         SparePart(
+        #             part_type_id=get_part_type['id'],
+        #             part_number=part_number,
+        #             purchase_price=get_part_type['purchase_price'],
+        #             retail_price=get_part_type['retail_price'],
+        #             wholesale_price=get_part_type['wholesale_price'],
+        #             finance_sale_price=get_part_type['finance_sale_price'],
+        #             corporate_sale_price=get_part_type['corporate_sale_price']
+        #         )
+        #     )
           
         
         # bulk create the vehicles appended to the vehicles list at once    
         Vehicle.objects.bulk_create(vehicles_list)
-        SparePart.objects.bulk_create(spare_parts_list)
+        # SparePart.objects.bulk_create(spare_parts_list)
                 
         # this is time to use the chassis number and part numbers saved initially
         # use the chassis_number and part numbers to get all the vehicles and parts you just saved         
         vehicles = Vehicle.objects.filter(chassis_number__in=vehicle_chassis)
-        spare_parts = SparePart.objects.filter(part_number__in=spare_part_numbers)
+        # spare_parts = SparePart.objects.filter(part_number__in=spare_part_numbers)
         
         # serialize the vehicles and spare parts
         serialized_vehicles = VehicleSerializer(vehicles, many=True)
-        serialized_spare_parts = SparePartSerializer(spare_parts, many=True)
+        # serialized_spare_parts = SparePartSerializer(spare_parts, many=True)
         
         # get all th ideas of these vehicles to be saved as vehicles in the container
         vehicle_ids = []
-        spare_part_ids = []
+        # spare_part_ids = []
         
         for vehicle in serialized_vehicles.data:
             vehicle_ids.append(vehicle['id'])
         
-        for spare_part in serialized_spare_parts.data:
-            spare_part_ids.append(spare_part['id'])
+        # for spare_part in serialized_spare_parts.data:
+        #     spare_part_ids.append(spare_part['id'])
             
         # check if container has mixed content or not
         
         
         
         sorted_brand_type = list(set(brand_types))
+        container_brand = ""
             
         if len(sorted_brand_type) > 1:
             saved_container.content_type = "mixed"
+            container_brand = "mixed"
         else:
             brand = Brand.objects.get(id=sorted_brand_type[0])
             serialized_brand = BrandSerializer(brand, many=False)
             saved_container.content_type = serialized_brand.data['name']
+            container_brand = serialized_brand.data['name']
             
         # this is the time to access the saved container and update
         saved_container.shipment_batch = Shipment.objects.get(id=request.data['shipment_batch'])
         saved_container.vehicles.set(vehicle_ids)
-        saved_container.spare_parts.set(spare_part_ids)
+        # saved_container.spare_parts.set(spare_part_ids)
         saved_container.save()
         
         
-        return Response("You have successfully added a container to shipment", status=status.HTTP_200_OK)
+        return Response({
+            "content_type": container_brand,
+            "slug": container_number,
+            "vehicles": vehicle_ids
+            }, status=status.HTTP_200_OK)
 
 
 
 class ContainerDetailView(RetrieveUpdateAPIView):
-    queryset = Shipment.objects.all()
-    serializer_class = ShipmentDetailSerializer
-    look_field = "slug"
+    queryset = Container.objects.all()
+    serializer_class = ContainerSerializer
+    lookup_field = "slug"
     # permission_classes = [AdminsOnly]
 
    

@@ -27,8 +27,8 @@ class ModelListView(ListCreateAPIView):
     filter_backends = [SearchFilter]
     search_fields = ('brand__name', 'name')
     
-    def perform_create(self, serializer):
-        return serializer.save(tax=1)
+    # def perform_create(self, serializer):
+    #     return serializer.save(tax=1)
 
 
 class ModelDetailView(RetrieveUpdateAPIView):
@@ -50,8 +50,8 @@ class SparePartTypeListView(ListCreateAPIView):
     filter_backends = [SearchFilter]
     search_fields = ['model__name', 'model__brand__name' ,'part']
     
-    def perform_create(self, serializer):
-        return serializer.save(tax=1)
+    # def perform_create(self, serializer):
+    #     return serializer.save(tax=1)
 
 
 class SparePartTypeDetailView(RetrieveUpdateAPIView):

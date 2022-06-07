@@ -196,19 +196,31 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# DOMAIN = ('localhost:3000')
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = '587'
+EMAIL_HOST_USER = 'sgo2010.sg@gmail.com'
+EMAIL_HOST_PASSWORD = 'iacsfjdstifkjkkh'
+
+
+
+
+DOMAIN = ('localhost:3000')
 SITE_NAME = ('Shalimar')
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
     "USERNAME_RESET_CONFIRM_URL": False,
     'USERNAME_CHANGED_EMAIL_CONFIRMATION': False,
-    'SEND_ACTIVATION_EMAIL': False,
+    'SEND_ACTIVATION_EMAIL': True,
     'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
     'SET_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_URL': '/password-reset/confirm/{uid}/{token}',
     'ACTIVATION_URL': 'activate/{uid}/{token}',
-    'SEND_CONFIRMATION_EMAIL': False,
+    'SEND_CONFIRMATION_EMAIL': True,
 
     'SERIALIZERS': {
         # 'user_create': 'users.serializers.UserCreateSerializer',
@@ -226,8 +238,9 @@ DJOSER = {
     #     'username_reset': 'core.email.UsernameResetEmail',
     # }
     
-    # 'PERMISSIONS': {
-    #     'user_create': ['rest_framework.permissions.AllowAny'],
-    # }
+    'PERMISSIONS': {
+        'user_create': ['rest_framework.permissions.IsAdminUser'],
+    }
 
 }
+

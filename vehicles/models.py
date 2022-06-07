@@ -48,7 +48,7 @@ class Model(models.Model):
     finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
     corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
     
-    tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
+    # tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
     
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -125,7 +125,7 @@ class SparePartType(models.Model):
     finance_sale_price = models.CharField( max_length=10, blank=True, default=0)
     corporate_sale_price = models.CharField( max_length=10, blank=True, default=0)
     
-    tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
+    # tax = models.ForeignKey(Tax, on_delete=models.PROTECT)
 
 
     def save(self, *args, **kwargs):

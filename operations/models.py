@@ -47,7 +47,7 @@ class CommercialInvoice(models.Model):
 class Shipment(models.Model):
     def default_journey_state(): 
        return {
-        "status": "No", 
+        "status": "no", 
         "date": "",
         "comment": ""
     }
@@ -82,6 +82,10 @@ class Shipment(models.Model):
     container_to_shipping = models.JSONField(default=default_journey_state)
     confirmation_of_vehicle_quantity = models.JSONField(default=default_journey_state)
     
+    on_the_move = models.BooleanField(default=False)
+    departed_at = models.DateTimeField(blank=True, null=True)
+    
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
     
@@ -111,7 +115,8 @@ class Shipment(models.Model):
     
 class Container(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
-    container_number = models.CharField(max_length=20, blank=False)
+    slug = slug = models.SlugField(max_length=50, blank=True)
+    container_number = models.CharField(max_length=20, blank=False, unique=True)
     
     content_type = models.CharField(max_length=20, blank=True)
     

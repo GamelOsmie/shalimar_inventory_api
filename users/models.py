@@ -62,13 +62,12 @@ class User(AbstractUser, PermissionsMixin):
     last_name = models.CharField(max_length=40, blank=True, null=True)
    
     role = models.CharField(max_length=50, choices=UserRole.choices, default=None, blank=True, null=True)
-    workplace = models.CharField(max_length=50, default="General", blank=True, null=True)
+    workplace = models.CharField(max_length=50, default="General Office", blank=True, null=True)
 
     is_superuser = models.BooleanField(default=False)
-    is_superadmin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    is_verified = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
     
     objects = CustomUserManager()
     
@@ -77,8 +76,12 @@ class User(AbstractUser, PermissionsMixin):
 
 
     def save(self, *args, **kwargs):
-        if self.role == "Admin":
-            self.is_staff == True
+        if self.role is "Admin":
+            self.is_staff = True
+        
+        if self.is_active is True:
+            self.is_verified = True
+                
         #this line below give to the instance slug field a slug name
         self.slug = slugify("{} {}".format(self.first_name, self.last_name))
         #this line below save every fields of the model instance

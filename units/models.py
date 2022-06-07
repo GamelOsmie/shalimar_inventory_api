@@ -39,6 +39,8 @@ class Branch(models.Model):
 
     class Meta:
         ordering = [Lower('name')]
+        verbose_name = 'Branch'
+        verbose_name_plural = 'Branches'
         
     def vehicles_in_stock_count(self):
         return self.vehicles_in_stock.count()

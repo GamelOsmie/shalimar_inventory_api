@@ -27,7 +27,7 @@ class VehicleModelSerializer(ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
         response['brand'] = BrandSerializer(instance.brand).data['name']
-        response['tax'] = TaxSerializer(instance.tax).data['rate']
+        # response['tax'] = TaxSerializer(instance.tax).data['rate']
         return response
         
 
@@ -55,7 +55,7 @@ class VehicleSerializer(ModelSerializer):
         response = super().to_representation(instance)
         response['model'] = VehicleModelSerializer(instance.model).data['name']
         response['brand'] = VehicleModelSerializer(instance.model).data['brand']
-        response['tax'] = TaxSerializer(instance.tax).data['rate']
+        # response['tax'] = TaxSerializer(instance.tax).data['rate']
         return response
         
 
@@ -84,6 +84,6 @@ class SparePartSerializer(ModelSerializer):
         response = super().to_representation(instance)
         response['model'] = SparePartModelSerializer(instance.model).data['name']
         response['brand'] = SparePartModelSerializer(instance.model).data['brand']
-        response['tax'] = TaxSerializer(instance.tax).data['rate']
+        # response['tax'] = TaxSerializer(instance.tax).data['rate']
         return response
         
