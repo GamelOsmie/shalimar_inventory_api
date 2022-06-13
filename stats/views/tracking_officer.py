@@ -1,4 +1,3 @@
-from numerize.numerize import numerize
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from operations.models import Shipment
@@ -15,10 +14,10 @@ class ShipmentDashboard(APIView):
     
 
         context = {
-            "all_shipments": numerize(all_shipments),
-            "pending_departure" : numerize(pending_departure),
-            "pending_arrival": numerize(pending_arrival),
-            "arrived": numerize(arrived),   
+            "all_shipments": all_shipments,
+            "pending_departure" : pending_departure,
+            "pending_arrival": pending_arrival,
+            "arrived": arrived,   
         }
 
         return Response(context)

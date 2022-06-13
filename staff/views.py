@@ -1,5 +1,5 @@
 import datetime
-import xlwt
+#import xlwt
 from django.http import HttpResponse
 from rest_framework.generics import ListCreateAPIView, ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
@@ -38,33 +38,33 @@ class StaffDetailView(RetrieveUpdateDestroyAPIView):
 
 
 
-class ExportStaffInExcel(APIView):
+# class ExportStaffInExcel(APIView):
 
-    def get(self, request):
-        response = HttpResponse(content_type='application/ms-excel')
-        response['Content-Disposition'] = 'attachment; filename=shalimar_staff' + \
-            str(datetime.datetime.now()) + '.xls'
+#     def get(self, request):
+#         response = HttpResponse(content_type='application/ms-excel')
+#         response['Content-Disposition'] = 'attachment; filename=shalimar_staff' + \
+#             str(datetime.datetime.now()) + '.xls'
 
-        workbook = xlwt.Workbook(encoding='utf-8')
-        worksheet = workbook.add_sheet('Staff')
-        row_num = 0
-        font_style = xlwt.XFStyle()
-        font_style.font.bold = True
+#         workbook = xlwt.Workbook(encoding='utf-8')
+#         worksheet = workbook.add_sheet('Staff')
+#         row_num = 0
+#         font_style = xlwt.XFStyle()
+#         font_style.font.bold = True
 
-        columns = ['First Name', 'Middle Name', 'Last Name', 'Phone Number', 'Email', 'Department', 'Role', 'Workplace', 'Salary', 'Qualification', 'Institution', 'DOB', 'Date Joined' ]
+#         columns = ['First Name', 'Middle Name', 'Last Name', 'Phone Number', 'Email', 'Department', 'Role', 'Workplace', 'Salary', 'Qualification', 'Institution', 'DOB', 'Date Joined' ]
 
-        for col_num in range(len(columns)):
-            worksheet.write(row_num, col_num, str(columns[col_num]), font_style)
+#         for col_num in range(len(columns)):
+#             worksheet.write(row_num, col_num, str(columns[col_num]), font_style)
 
-        font_style = xlwt.XFStyle()
+#         font_style = xlwt.XFStyle()
 
-        rows = Staff.objects.all().values_list('first_name','middle_name','last_name','phone_number', 'email', 'department', 'role', 'workplace', 'salary', 'qualification', 'institution', 'dob', 'date_joined')
+#         rows = Staff.objects.all().values_list('first_name','middle_name','last_name','phone_number', 'email', 'department', 'role', 'workplace', 'salary', 'qualification', 'institution', 'dob', 'date_joined')
 
-        for row in rows:
-            row_num += 1
-            for col_num in range(len(row)):
-                worksheet.write(row_num, col_num, str(row[col_num]), font_style)
+#         for row in rows:
+#             row_num += 1
+#             for col_num in range(len(row)):
+#                 worksheet.write(row_num, col_num, str(row[col_num]), font_style)
 
-        workbook.save(response)
+#         workbook.save(response)
 
-        return response
+#         return response

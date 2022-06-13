@@ -1,4 +1,3 @@
-from numerize.numerize import numerize
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from operations.models import Container, Shipment
@@ -27,18 +26,18 @@ class DashboardSummary(APIView):
         
         
         context = {
-            "users": numerize(users),
-            "staff": numerize(staff),
-            "shipments": numerize(shipments),
-            "containers": numerize(containers),
-            "warehouses": numerize(warehouses),
-            "branches": numerize(branches),
-            "spare_parts": numerize(spare_parts),
-            "vehicles": numerize(vehicles),
-            "service_shops": numerize(service_shops),
-            "brands": numerize(brands),
-            "models": numerize(models),
-            "part_type": numerize(part_type),
+            "users": users,
+            "staff": staff,
+            "shipments": shipments,
+            "containers": containers,
+            "warehouses": warehouses,
+            "branches": branches,
+            "spare_parts": spare_parts,
+            "vehicles": vehicles,
+            "service_shops": service_shops,
+            "brands": brands,
+            "models": models,
+            "part_type": part_type,
         }
         
         return Response(context)
