@@ -1,10 +1,11 @@
+from curses import raw
 from rest_framework.response import Response
-from rest_framework.generics import ListAPIView, RetrieveAPIView,ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import  RetrieveAPIView,ListCreateAPIView, RetrieveUpdateAPIView, ListAPIView
 from rest_framework.views import APIView
 
 from units.models import Warehouse
-from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WareSupply
-from .serializers import  CommercialInvoiceSerializer, ProformaInvoiceSerializer,  ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseSupplySerializer
+from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WarehouseSparePartsSupply, WarehouseVehiclesSupply, WarehouseVehiclesSupply
+from .serializers import  CommercialInvoiceSerializer, ContainerDetailSerializer, ProformaInvoiceSerializer,  ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseSparePartsSupplySerializer, WarehouseVehiclesSupplySerializer
 from vehicles.serializers import BrandSerializer, SparePartSerializer, VehicleSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -43,6 +44,18 @@ class ProformaInvoiceListView(ListCreateAPIView):
     filter_backends = (SearchFilter,)
     search_fields = ('invoice_number',)
     # permission_classes = [AdminsOnly]
+    
+
+class UnlinkedProformaInvoiceListView(ListAPIView):
+    queryset = ProformaInvoice.objects.filter(commercial_invoices=None)
+    serializer_class = ProformaInvoiceSerializer
+    # permission_classes = [AdminsOnly]
+
+
+class UnlinkedCommercialInvoiceListView(ListAPIView):
+    queryset = CommercialInvoice.objects.filter(shipments_commercial_invoices=None)
+    serializer_class = CommercialInvoiceSerializer
+    # permission_classes = [AdminsOnly]
 
 
 
@@ -69,92 +82,60 @@ class ShipmentDetailView(RetrieveUpdateAPIView):
     # permission_classes = [AdminsOnly]
 
 
-class ContainerListView(ListAPIView):
+class ContainerListCreateView(ListCreateAPIView):
     queryset = Container.objects.all()
     serializer_class = ContainerSerializer
     # permission_classes = [AdminsOnly]
-    
-    
-class ContainerCreateView(APIView):
+       
 
+class AddVehiclesToContainerView(APIView):
+    
     def post(self, request):
         # specify where to save the uploaded files
-        fs = FileSystemStorage(location='tmp/')
-        
-        print(request.data['container_number'])
-        
-        # create a container instance and save. this will be updated with vehicles and spare parts later
-        container_number = request.data['container_number']
-        container = Container(container_number = container_number)
-        container.save()
-
-
-        #get all vehicle models and part types so you don't hit database multiple times
+        fs = FileSystemStorage(location='tmp/vehicles/')
+          
+        # get all vehicle models and part types so you don't hit database multiple times
         models = Model.objects.select_related('brand').all()
-        part_type = SparePartType.objects.all()
         
-        
-        # get the just saved container and store in an instance to so it can be updated
-        saved_container = Container.objects.get(container_number = request.data['container_number'])
-        
-        # get the uploaded vehicles and spare parts
+        # get the uploaded vehicles
         uploaded_vehicles = self.request.FILES.get("vehicles")
-        # uploaded_spare_parts = self.request.FILES.get("spare_parts")
-
-
+        
         # read and save the csv file in memory
         uploaded_vehicles_content = uploaded_vehicles.read()
         vehicles_content = ContentFile(uploaded_vehicles_content)
-        vehicles_batch_name = fs.save(
-            "_tmp.csv", vehicles_content
-        )
-        
-        # uploaded_spare_parts_content = uploaded_spare_parts.read()
-        # spare_parts_content = ContentFile(uploaded_spare_parts_content)
-        # spare_parts_batch_name = fs.save(
-        #     "_tmp.csv", spare_parts_content
-        # )
-
+        vehicles_batch_name = fs.save("_tmp.csv", vehicles_content)
         
         # get the tmp using the batch name
         vehicles_tmp_file = fs.path(vehicles_batch_name)
-        # spare_parts_tmp_file = fs.path(spare_parts_batch_name)
-
+        
         # open the csv file, read and skip the first row which is the table headers
         vehicles_csv_file = open(vehicles_tmp_file, errors="ignore")
         vehicles_reader = csv.reader(vehicles_csv_file)
         next(vehicles_reader)
         
-        # spare_parts_csv_file = open(spare_parts_tmp_file, errors="ignore")
-        # spare_parts_reader = csv.reader(spare_parts_csv_file)
-        # next(spare_parts_reader)
-
         # list of vehicles that will be saved
         vehicles_list = []
-        # spare_parts_list = []
-        
+       
         # list of chassis number and part numbers that will be used to update the list of vehicles in the container
         vehicle_chassis = []
-        # spare_part_numbers = []
-        
+
         # brand types to determine if the vehicle has mixed content or not
         brand_types = []
-        
+
         #go over each row and skip the index using [1], get each role name and save it to update the database
         for row in enumerate(vehicles_reader):
-                                    
-                                    
+
             model = row[1][0]
             chassis_number = row[1][1]
             engine_number = row[1][2]
             color = row[1][3]
-            
+
             vehicle_chassis.append(chassis_number)
-            
+
             # get the specific model and add the id to be saved
             get_model = models.filter(name=model).values().first()
             brand_types.append(get_model['brand_id'])
-            
+
             vehicles_list.append(
                 Vehicle(
                     model_id=get_model['id'],
@@ -169,165 +150,229 @@ class ContainerCreateView(APIView):
                     corporate_sale_price=get_model['corporate_sale_price']
                 )
             )
-        
-        # # go over the spare parts to save it
-        # for row in enumerate(spare_parts_reader):
-
-        #     part_number = row[1][0]
-        #     part_type = row[1][1]
-           
-        #     spare_part_numbers.append(part_number)
-
-        #     # get the specific model and add the id to be saved
-        #     get_part_type = SparePartType.filter(part=part_type).values().first()
-
             
-        #     spare_parts_list.append(
-        #         SparePart(
-        #             part_type_id=get_part_type['id'],
-        #             part_number=part_number,
-        #             purchase_price=get_part_type['purchase_price'],
-        #             retail_price=get_part_type['retail_price'],
-        #             wholesale_price=get_part_type['wholesale_price'],
-        #             finance_sale_price=get_part_type['finance_sale_price'],
-        #             corporate_sale_price=get_part_type['corporate_sale_price']
-        #         )
-        #     )
-          
-        
-        # bulk create the vehicles appended to the vehicles list at once    
+
+        # bulk create the vehicles appended to the vehicles list at once
         Vehicle.objects.bulk_create(vehicles_list)
-        # SparePart.objects.bulk_create(spare_parts_list)
-                
-        # this is time to use the chassis number and part numbers saved initially
-        # use the chassis_number and part numbers to get all the vehicles and parts you just saved         
-        vehicles = Vehicle.objects.filter(chassis_number__in=vehicle_chassis)
-        # spare_parts = SparePart.objects.filter(part_number__in=spare_part_numbers)
         
+        # this is time to use the chassis number and part numbers saved initially
+        # use the chassis_number and part numbers to get all the vehicles and parts you just saved
+        vehicles = Vehicle.objects.filter(chassis_number__in=vehicle_chassis)
+        
+
         # serialize the vehicles and spare parts
         serialized_vehicles = VehicleSerializer(vehicles, many=True)
-        # serialized_spare_parts = SparePartSerializer(spare_parts, many=True)
+        
+        
         
         # get all th ideas of these vehicles to be saved as vehicles in the container
         vehicle_ids = []
-        # spare_part_ids = []
-        
+
+
         for vehicle in serialized_vehicles.data:
             vehicle_ids.append(vehicle['id'])
+
+              
+        # get the just saved container and store in an instance to so it can be updated
+        target_container = Container.objects.get(container_number = request.data['container_number'])
         
-        # for spare_part in serialized_spare_parts.data:
-        #     spare_part_ids.append(spare_part['id'])
-            
+        target_container_existing_vehicles = target_container.vehicles.values()
+        
+        # add existing vehicles to newly added vehicles
+        for vehicle in target_container_existing_vehicles:
+            vehicle_ids.append(vehicle['id'])
+        
+
         # check if container has mixed content or not
-        
-        
-        
         sorted_brand_type = list(set(brand_types))
-        container_brand = ""
-            
+
         if len(sorted_brand_type) > 1:
-            saved_container.content_type = "mixed"
-            container_brand = "mixed"
+            target_container.content_type = "mixed"
+    
         else:
             brand = Brand.objects.get(id=sorted_brand_type[0])
             serialized_brand = BrandSerializer(brand, many=False)
-            saved_container.content_type = serialized_brand.data['name']
-            container_brand = serialized_brand.data['name']
-            
+            target_container.content_type = serialized_brand.data['name']
+
         # this is the time to access the saved container and update
-        saved_container.shipment_batch = Shipment.objects.get(id=request.data['shipment_batch'])
-        saved_container.vehicles.set(vehicle_ids)
-        # saved_container.spare_parts.set(spare_part_ids)
-        saved_container.save()
+        target_container.vehicles.set(vehicle_ids)
+        # target_container.spare_parts.set(spare_part_ids)
+        target_container.save()
+
+        return Response(serialized_vehicles.data, status=status.HTTP_200_OK)
+
         
+class AddSparePartsToContainerView(APIView):
+
+    def post(self, request):
+        # specify where to save the uploaded files
+        fs = FileSystemStorage(location='tmp/parts/')
+
+        # get all vehicle models and part types so you don't hit database multiple times
+        part_type = SparePartType.objects.all()
+
+        # get the uploaded vehicles
+        uploaded_spare_part = self.request.FILES.get("spare_parts")
+
+        # read and save the csv file in memory
+        uploaded_spare_part_content = uploaded_spare_part.read()
+        spare_part_content = ContentFile(uploaded_spare_part_content)
+        spare_part_batch_name = fs.save("_tmp.csv", spare_part_content)
+
+        # get the tmp using the batch name
+        spare_part_tmp_file = fs.path(spare_part_batch_name)
+
+        # open the csv file, read and skip the first row which is the table headers
+        spare_part_csv_file = open(spare_part_tmp_file, errors="ignore")
+        spare_part_reader = csv.reader(spare_part_csv_file)
+        next(spare_part_reader)
+
+        # list of vehicles that will be saved
+        spare_part_list = []
+
+        # list of chassis number and part numbers that will be used to update the list of vehicles in the container
+        spare_part_numbers = []
+
         
-        return Response({
-            "content_type": container_brand,
-            "slug": container_number,
-            "vehicles": vehicle_ids
-            }, status=status.HTTP_200_OK)
+        #go over each row and skip the index using [1], get each role name and save it to update the database
+        for row in enumerate(spare_part_reader):
+
+            spare_part_type = row[1][0]
+            part_number = row[1][1]
+            
+            spare_part_numbers.append(part_number)
+
+            # get the specific model and add the id to be saved
+            get_part_type = part_type.filter(part=spare_part_type ).values().first()
+
+            spare_part_list.append(
+                SparePart(
+                    part_type_id=get_part_type['id'],
+                    part_number=part_number,
+                    slug=part_number,
+                    purchase_price=get_part_type['purchase_price'],
+                    retail_price=get_part_type['retail_price'],
+                    wholesale_price=get_part_type['wholesale_price'],
+                    finance_sale_price=get_part_type['finance_sale_price'],
+                    corporate_sale_price=get_part_type['corporate_sale_price']
+                )
+            )
+
+        # bulk create the vehicles appended to the vehicles list at once
+        SparePart.objects.bulk_create(spare_part_list)
+
+        # this is time to use the chassis number and part numbers saved initially
+        # use the chassis_number and part numbers to get all the vehicles and parts you just saved
+        spare_parts = SparePart.objects.filter(
+            part_number__in=spare_part_numbers)
+
+        # serialize the vehicles and spare parts
+        serialized_spare_parts = SparePartSerializer(spare_parts, many=True)
+
+        # get all th ideas of these vehicles to be saved as vehicles in the container
+        spare_part_ids = []
+
+        for part in serialized_spare_parts.data:
+            spare_part_ids.append(part['id'])
+
+        # get the just saved container and store in an instance to so it can be updated
+        target_container = Container.objects.get(
+            container_number=request.data['container_number'])
+
+        target_container_existing_spare_parts = target_container.spare_parts.values()
+
+        # add existing vehicles to newly added vehicles
+        for part in target_container_existing_spare_parts:
+            spare_part_ids.append(part['id'])
+
+
+        # this is the time to access the saved container and update
+        target_container.spare_parts.set(spare_part_ids)
+        target_container.save()
+
+        return Response(serialized_spare_parts.data, status=status.HTTP_200_OK)
 
 
 
 class ContainerDetailView(RetrieveUpdateAPIView):
     queryset = Container.objects.all()
-    serializer_class = ContainerSerializer
+    serializer_class = ContainerDetailSerializer
     lookup_field = "slug"
     # permission_classes = [AdminsOnly]
 
    
     
-class WarehouseSupplyListView(ListAPIView):
-    queryset =  WareSupply.objects.all()
-    serializer_class = WarehouseSupplySerializer
+class WarehouseVehiclesSupplyListView(ListCreateAPIView):
+    queryset = WarehouseVehiclesSupply.objects.all()
+    serializer_class = WarehouseVehiclesSupplySerializer
     
     def perform_create(self, serializer):
-        vehicles_supplied_quantity = serializer.data['vehicles_supplied'].count()
-        spare_parts_supplied_quantity = serializer.data['spare_parts_supplied'].count()
+        vehicles_supplied_quantity = len(serializer.validated_data['vehicles_supplied'])
+        container_id = self.request.data['container']
         
-        return serializer.save(vehicles_supplied_quantity=vehicles_supplied_quantity, spare_parts_supplied_quantity=spare_parts_supplied_quantity)
+        container = Container.objects.get(id=container_id )
+        
+        container_vehicles = list(container.vehicles.values())
+        vehicles_to_be_supplied = self.request.data['vehicles_supplied']
+                
+        remaining_vehicles_in_container = []
+
+        for vehicle in container_vehicles:
+            if str(vehicle['id']) not in vehicles_to_be_supplied:
+                remaining_vehicles_in_container.append(str(vehicle['id']))
+
+        container.vehicles.set(remaining_vehicles_in_container)
+        container.save()
+        
+        return serializer.save(vehicles_supplied_quantity=vehicles_supplied_quantity)
 
 
-class WarehouseSupplyDetailView(RetrieveAPIView):
-    queryset = WareSupply.objects.all()
-    serializer_class = WarehouseSupplySerializer
+class WarehouseVehiclesSupplyDetailView(RetrieveAPIView):
+    queryset =WarehouseVehiclesSupply.objects.all()
+    serializer_class = WarehouseVehiclesSupplySerializer
     # permission_classes = [AdminsOnly]
     lookup_field = "slug"
     
 
     
-class WarehouseSupplyReceiveView(APIView):
+class WarehouseVehiclesSupplyReceiveView(APIView):
     
     def post(self, request):
-        supply_query = WareSupply.objects.get(slug=request.data['slug'])
+        supply_query =WarehouseVehiclesSupply.objects.get(slug=request.data['slug'])
         
-    
         # save the list of received vehicles and spare parts
         received_vehicles = request.data['vehicles_received']
-        received_spare_parts = request.data['spare_parts_received']
         
         # get the list of spare parts and vehicles that exist
         vehicles_in_container = supply_query.vehicles_supplied.values()
-        spare_parts_in_container = supply_query.spare_parts_supplied.values()
         
         # list of all vehicles and spare parts yet to be received
         vehicles_in_stock = []
-        spare_parts_in_stock = []
-        
+       
         # perform a simple check to remove every vehicle and spare part that are lined up to be received
         for vehicle in vehicles_in_container:
-            if vehicle['id'] not in received_vehicles:
-                vehicles_in_stock.append(vehicle['id']) 
-                
-        
-        for spare_part in spare_parts_in_container:
-            if spare_part['id'] not in received_spare_parts:
-                spare_parts_in_stock.append(spare_part['id']) 
+            if str(vehicle['id']) not in received_vehicles:
+                vehicles_in_stock.append(str(vehicle['id'])) 
                 
         # update very instance that need update with the most up to date details            
-        supply_query.vehicles_supplied = vehicles_in_stock
+        supply_query.vehicles_supplied.set(vehicles_in_stock)
         supply_query.vehicles_supplied = received_vehicles.count()
-        supply_query.spare_parts_supplied = spare_parts_in_stock
-        supply_query.spare_parts_supplied = received_spare_parts.count()
         supply_query.received_date = datetime.datetime.now()
         
         # save the supply details
         supply_query.save()
         
         # now find the warehouse that is meant to received their products and populate it
-        warehouse_query = Warehouse.objects.get(id=request.data['id'])
+        warehouse_query = Warehouse.objects.get(slug=request.data['slug'])
         
         # get the list of vehicles and spare parts already available in the warehouse
         warehouse_vehicles_in_stock = list(warehouse_query.vehicles_in_stock.values())
-        warehouse_spare_parts_in_stock = list(warehouse_query.spare_parts_in_stock.values())
         
         # append newly received vehicles and spare parts to the existing list 
         warehouse_vehicles_in_stock.append(received_vehicles)
-        warehouse_spare_parts_in_stock.append(received_spare_parts)
         
         # update the stock of vehicles and spare parts with the most up to date info
         warehouse_query.vehicles_in_stock.set(warehouse_vehicles_in_stock)
-        warehouse_query.spare_parts_in_stock.set(warehouse_spare_parts_in_stock)
         
         # save warehouse to update the details
         warehouse_query.save()
@@ -335,5 +380,83 @@ class WarehouseSupplyReceiveView(APIView):
             
         return Response({"supply received successfully"}, status=status.HTTP_200_OK)
 
+
+
+class WarehouseSparePartsSupplyListView(ListCreateAPIView):
+    queryset = WarehouseSparePartsSupply.objects.all()
+    serializer_class = WarehouseSparePartsSupplySerializer
+
+    def perform_create(self, serializer):
+        spare_part_supplied_quantity = len(
+            serializer.validated_data['spare_parts_supplied'])
+        container_id = self.request.data['container']
+
+        container = Container.objects.get(id=container_id)
+
+        container_spare_parts = list(container.spare_parts.values())
+        spare_part_to_be_supplied = self.request.data['spare_parts_supplied']
         
-    
+        remaining_spare_part_in_container = []
+
+        for part in container_spare_parts:
+            if str(part['id']) not in spare_part_to_be_supplied:
+                remaining_spare_part_in_container.append(str(part['id']))
+
+        container.spare_parts.set(remaining_spare_part_in_container)
+        container.save()
+
+        return serializer.save(spare_parts_supplied_quantity=spare_part_supplied_quantity)
+
+
+class WarehouseSparePartsSupplyDetailView(RetrieveAPIView):
+    queryset = WarehouseSparePartsSupply.objects.all()
+    serializer_class = WarehouseSparePartsSupplySerializer
+    # permission_classes = [AdminsOnly]
+    lookup_field = "slug"
+
+
+class WarehouseSparePartsSupplyReceiveView(APIView):
+
+    def post(self, request):
+        supply_query = WarehouseSparePartsSupply.objects.get(
+            slug=request.data['slug'])
+
+        # save the list of received vehicles and spare parts
+        received_spare_parts = request.data['spare_parts_received']
+
+        # get the list of spare parts and vehicles that exist
+        spare_parts_in_container = supply_query.spare_parts_supplied.values()
+
+        # list of all vehicles and spare parts yet to be received
+        spare_parts_in_stock = []
+
+        # perform a simple check to remove every vehicle and spare part that are lined up to be received
+        for part in spare_parts_in_container:
+            if str(part['id']) not in received_spare_parts:
+                spare_parts_in_stock.append(str(part['id']))
+
+        # update very instance that need update with the most up to date details
+        supply_query.vehicles_supplied.set(spare_parts_in_stock)
+        supply_query.vehicles_supplied = received_spare_parts.count()
+        supply_query.received_date = datetime.datetime.now()
+
+        # save the supply details
+        supply_query.save()
+
+        # now find the warehouse that is meant to received their products and populate it
+        warehouse_query = Warehouse.objects.get(slug=request.data['slug'])
+
+        # get the list of vehicles and spare parts already available in the warehouse
+        warehouse_spare_parts_in_stock = list(
+            warehouse_query.spare_parts_in_stock.values())
+
+        # append newly received vehicles and spare parts to the existing list
+        warehouse_spare_parts_in_stock.append(received_spare_parts)
+
+        # update the stock of vehicles and spare parts with the most up to date info
+        warehouse_query.vehicles_in_stock.set(warehouse_spare_parts_in_stock)
+
+        # save warehouse to update the details
+        warehouse_query.save()
+
+        return Response({"supply received successfully"}, status=status.HTTP_200_OK)

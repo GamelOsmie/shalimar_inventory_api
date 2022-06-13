@@ -7,7 +7,7 @@ from django.template.defaultfilters import slugify
 
 
 class Staff(models.Model):
-    designation_options = (
+    department_options = (
         ('General Office', 'General Office'),
         ('Branch', 'Branch'),
         ('Warehouse', 'Warehouse'),
@@ -43,11 +43,11 @@ class Staff(models.Model):
     phone_number = models.CharField(max_length=15, blank=False)
     email = models.CharField(max_length=200, blank=False)
 
-    designation = models.CharField(max_length=50, blank=False, choices=designation_options)
+    department = models.CharField(max_length=50, blank=False, choices=department_options)
     workplace = models.CharField(max_length=50, blank=False)
     role = models.CharField(max_length=50, blank=False, choices=role_options)
 
-    qualification = models.CharField(max_length=50, blank=False, choices=qualification_options)
+    qualification = models.CharField(max_length=50, blank=True, null=True, choices=qualification_options)
     institution = models.CharField(max_length=100, blank=True)
 
     salary = models.CharField(max_length=20, blank=True, null=True)

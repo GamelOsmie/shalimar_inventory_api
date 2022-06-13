@@ -63,7 +63,6 @@ class Branch(models.Model):
     def staff_count(self):
         return Staff.objects.filter(workplace=self.name).count()
     
-        
     def users_count(self):
         return User.objects.filter(workplace=self.name).count()
            

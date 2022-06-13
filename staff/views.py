@@ -23,7 +23,7 @@ class StaffListView(ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     search_fields = ('first_name', 'middle_name', 'last_name',
                      'phone_number', 'email', 'designation', 'workplace', 'role')
-    filterset_fields = ['designation', 'workplace', 'role', 'qualification']
+    filterset_fields = ['department', 'workplace', 'role', 'qualification']
 
 
 class StaffFullListView(ListAPIView):
@@ -51,14 +51,14 @@ class ExportStaffInExcel(APIView):
         font_style = xlwt.XFStyle()
         font_style.font.bold = True
 
-        columns = ['First Name', 'Middle Name', 'Last Name', 'Phone Number', 'Email', 'Designation', 'Role', 'Workplace', 'Salary', 'Qualification', 'Institution', 'DOB', 'Date Joined' ]
+        columns = ['First Name', 'Middle Name', 'Last Name', 'Phone Number', 'Email', 'Department', 'Role', 'Workplace', 'Salary', 'Qualification', 'Institution', 'DOB', 'Date Joined' ]
 
         for col_num in range(len(columns)):
             worksheet.write(row_num, col_num, str(columns[col_num]), font_style)
 
         font_style = xlwt.XFStyle()
 
-        rows = Staff.objects.all().values_list('first_name','middle_name','last_name','phone_number', 'email', 'designation', 'role', 'workplace', 'salary', 'qualification', 'institution', 'dob', 'date_joined')
+        rows = Staff.objects.all().values_list('first_name','middle_name','last_name','phone_number', 'email', 'department', 'role', 'workplace', 'salary', 'qualification', 'institution', 'dob', 'date_joined')
 
         for row in rows:
             row_num += 1

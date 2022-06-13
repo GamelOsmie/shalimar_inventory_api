@@ -1,4 +1,5 @@
 from pyexpat import model
+from tabnanny import verbose
 from django.template.defaultfilters import slugify
 from django.db.models.functions import Lower
 from django.db import models
@@ -14,6 +15,7 @@ class Tax(models.Model):
     
     def __str__(self):
         return self.rate
+    
 
 
 class Brand(models.Model):
@@ -115,7 +117,6 @@ class SparePartType(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(max_length=50, blank=True)
 
-
     model = models.ForeignKey(Model, on_delete=models.PROTECT, blank=False, related_name="sparepart_models")         
     part = models.CharField(max_length=100, blank=False)
   
@@ -157,7 +158,7 @@ class SparePart(models.Model):
     part_number = models.CharField(max_length=30, unique=True)
     part_type = models.ForeignKey(SparePartType, on_delete=models.PROTECT, blank=False, related_name="sparepart_type")         
     
-    current_location = models.CharField(max_length=20, choices=location, default=None)
+    current_location = models.CharField(max_length=20, choices=location, default="at sea")
     custodian = models.CharField(max_length=100, blank=True, null=True)
 
     last_moved = models.DateTimeField(auto_now=True)

@@ -60,6 +60,8 @@ class User(AbstractUser, PermissionsMixin):
     first_name = models.CharField(max_length=40, blank=True, null=True)
     middle_name = models.CharField(max_length=40, blank=True, null=True)
     last_name = models.CharField(max_length=40, blank=True, null=True)
+    
+    username = models.CharField(max_length=40, blank=True, null=True)
    
     role = models.CharField(max_length=50, choices=UserRole.choices, default=None, blank=True, null=True)
     workplace = models.CharField(max_length=50, default="General Office", blank=True, null=True)

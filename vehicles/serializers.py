@@ -82,8 +82,8 @@ class SparePartSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        response['model'] = SparePartModelSerializer(instance.model).data['name']
-        response['brand'] = SparePartModelSerializer(instance.model).data['brand']
-        # response['tax'] = TaxSerializer(instance.tax).data['rate']
+        response['part'] = SparePartTypeSerializer(instance.part_type).data['part']
+        response['model'] = SparePartTypeSerializer(instance.part_type).data['model']
+        response['brand'] = SparePartTypeSerializer(instance.part_type).data['brand']
         return response
         

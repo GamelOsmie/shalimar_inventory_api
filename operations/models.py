@@ -1,4 +1,5 @@
 
+from enum import unique
 from django.db import models
 from django.template.defaultfilters import slugify
 from units.models import Branch, ServiceShop, Warehouse
@@ -62,8 +63,8 @@ class Shipment(models.Model):
     clearing_agent = models.CharField(max_length=50, blank=False, null=False)
       
     bill_of_lading_number = models.CharField(max_length=50, unique="true", blank=False, null=False)
-    commercial_invoice = models.ForeignKey(CommercialInvoice, on_delete=models.PROTECT, related_name="commercial_invoices", blank=True, null=True )
-    proforma_invoice = models.ForeignKey(ProformaInvoice, on_delete=models.PROTECT, related_name="proforma_invoices", blank=True, null=True )
+    commercial_invoice = models.ForeignKey(CommercialInvoice, on_delete=models.PROTECT, related_name="shipments_commercial_invoices", blank=True, null=True )
+    proforma_invoice = models.ForeignKey(ProformaInvoice, on_delete=models.PROTECT, related_name="shipments_proforma_invoices", blank=True, null=True )
         
     departs_embarkation_port = models.JSONField(default=default_journey_state)
     container_docks_at_disembarkation_port = models.JSONField(default=default_journey_state)
@@ -124,7 +125,7 @@ class Container(models.Model):
 
     spare_parts = models.ManyToManyField(SparePart, related_name ='container_spare_parts', blank=True)
     
-    shipment_batch = models.ForeignKey(Shipment, on_delete=models.PROTECT, blank=True, null=True,related_name="contains")
+    shipment_batch = models.ForeignKey(Shipment, on_delete=models.PROTECT, blank=True, null=True, related_name="contains")
     
 
     def save(self, *args, **kwargs):        
@@ -142,37 +143,66 @@ class Container(models.Model):
         return self.vehicles.count()
     
     
-    def spare_parts_count(self):
+    def spare_part_count(self):
         return self.spare_parts.count()
+    
+    
+    def spare_part_supplies(self):
+        return self.container_spare_parts.all()
+    
+    
+    def vehicle_supplies(self):
+        return self.container_vehicles.all()
 
 
 
     
-class WareSupply(models.Model):
+class WarehouseVehiclesSupply(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(max_length=50, blank=True)
-    supply_code = ShortUUIDField(length=8, max_length=10, prefix="WS", alphabet="1234567890", editable=False)
+    supply_code = ShortUUIDField(length=7, max_length=10, prefix="WVS", alphabet="1234567890", editable=False, unique=True)
     
-    container = models.ForeignKey(Container, on_delete=models.PROTECT, blank=False, related_name="warehouse_supply")
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, blank=False, related_name="warehouse_supply")
+    container = models.ForeignKey(Container, on_delete=models.PROTECT, blank=False, related_name="container_vehicles")
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, blank=False, related_name="vehicle_warehouses")
     
     vehicles_supplied = models.ManyToManyField(Vehicle, related_name ='warehouse_vehicles_supplied', blank=True)
     vehicles_supplied_quantity = models.CharField(max_length=10, blank=True)
     vehicles_supplied_received = models.CharField(max_length=10, blank=True, default=0)
 
+    supply_date = models.DateTimeField(auto_now_add=True)
+    received_date = models.DateTimeField(blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.supply_code)
+        super(WarehouseVehiclesSupply, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.supply_code
+
+
+
+    
+class WarehouseSparePartsSupply(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=50, blank=True)
+    supply_code = ShortUUIDField(length=7, max_length=10, prefix="WPS", alphabet="1234567890", editable=False, unique=True)
+    
+    container = models.ForeignKey(Container, on_delete=models.PROTECT, blank=False, related_name="container_spare_parts")
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, blank=False, related_name="spare_part_warehouses")
+    
     spare_parts_supplied = models.ManyToManyField(SparePart, related_name ='warehouse_spare_parts_supplied', blank=True)
     spare_parts_supplied_quantity = models.CharField(max_length=10, blank=True)
     spare_parts_supplied_received = models.CharField(max_length=10, blank=True, default=0)
 
     supply_date = models.DateTimeField(auto_now_add=True)
-    received_date = models.DateTimeField(blank=True)
+    received_date = models.DateTimeField(blank=True, null=True)
     
     def save(self, *args, **kwargs):
         self.slug = slugify(self.supply_code)
-        super(WareSupply, self).save(*args, **kwargs)
+        super(WarehouseSparePartsSupply, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.container_number
+        return self.supply_code
 
 
 
