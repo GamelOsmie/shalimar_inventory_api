@@ -206,9 +206,8 @@ EMAIL_HOST_USER = 'sgo2010.sg@gmail.com'
 EMAIL_HOST_PASSWORD = 'iacsfjdstifkjkkh'
 
 
-
-
-DOMAIN = ('localhost:3000')
+DOMAIN = ('shalimar-v2.netlify.app')
+# DOMAIN = ('localhost:3000')
 SITE_NAME = ('Shalimar')
 DJOSER = {
     'LOGIN_FIELD': 'email',
