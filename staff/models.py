@@ -40,8 +40,8 @@ class Staff(models.Model):
     middle_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=False)
     dob = models.DateField(blank=True, null=True)
-    phone_number = models.CharField(max_length=15, blank=False)
-    email = models.CharField(max_length=200, blank=False)
+    phone_number = models.CharField(max_length=15, blank=False, unique=True)
+    email = models.CharField(max_length=200, blank=False, unique=True)
 
     department = models.CharField(max_length=50, blank=False, choices=department_options)
     workplace = models.CharField(max_length=50, blank=False)
