@@ -3,9 +3,10 @@ from rest_framework.response import Response
 from rest_framework.generics import  RetrieveAPIView,ListCreateAPIView, RetrieveUpdateAPIView, ListAPIView
 from rest_framework.views import APIView
 
-from units.models import Warehouse
-from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WarehouseSparePartsSupply, WarehouseVehiclesSupply, WarehouseVehiclesSupply
-from .serializers import  CommercialInvoiceSerializer, ContainerDetailSerializer, ProformaInvoiceSerializer,  ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseSparePartsSupplySerializer, WarehouseVehiclesSupplySerializer
+from units.models import Branch, Warehouse
+from units.serializers import BranchDetailSerializer, WarehouseDetailSerializer
+from .models import  BranchSparePartsSupply, BranchVehiclesSupply, CommercialInvoice, ProformaInvoice, Shipment, Container, WarehouseSparePartsSupply, WarehouseVehiclesSupply, WarehouseVehiclesSupply
+from .serializers import  BranchSparePartsSupplySerializer, BranchVehiclesSupplySerializer, CommercialInvoiceSerializer, ContainerDetailSerializer, ProformaInvoiceSerializer,  ShipmentListSerializer, ShipmentDetailSerializer, ContainerSerializer, WarehouseSparePartsSupplySerializer, WarehouseVehiclesSupplySerializer
 from vehicles.serializers import BrandSerializer, SparePartSerializer, VehicleSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -162,8 +163,7 @@ class AddVehiclesToContainerView(APIView):
 
         # serialize the vehicles and spare parts
         serialized_vehicles = VehicleSerializer(vehicles, many=True)
-        
-        
+    
         
         # get all th ideas of these vehicles to be saved as vehicles in the container
         vehicle_ids = []
@@ -337,14 +337,16 @@ class WarehouseVehiclesSupplyDetailView(RetrieveAPIView):
     
 class WarehouseVehiclesSupplyReceiveView(APIView):
     
-    def post(self, request):
-        supply_query =WarehouseVehiclesSupply.objects.get(slug=request.data['slug'])
+    def post(self, request, format=None):
+        supply_query =WarehouseVehiclesSupply.objects.get(slug=request.data['supply_slug'])
         
         # save the list of received vehicles and spare parts
         received_vehicles = request.data['vehicles_received']
         
-        # get the list of spare parts and vehicles that exist
+        # get the list of vehicles that exist
         vehicles_in_container = supply_query.vehicles_supplied.values()
+        
+        
         
         # list of all vehicles and spare parts yet to be received
         vehicles_in_stock = []
@@ -354,31 +356,121 @@ class WarehouseVehiclesSupplyReceiveView(APIView):
             if str(vehicle['id']) not in received_vehicles:
                 vehicles_in_stock.append(str(vehicle['id'])) 
                 
+        
         # update very instance that need update with the most up to date details            
         supply_query.vehicles_supplied.set(vehicles_in_stock)
-        supply_query.vehicles_supplied = received_vehicles.count()
+        supply_query.vehicles_supplied_received = int(supply_query.vehicles_supplied_received) + len(received_vehicles)
         supply_query.received_date = datetime.datetime.now()
         
+        
         # save the supply details
-        supply_query.save()
-        
+        supply_query.save()  
+                
+               
         # now find the warehouse that is meant to received their products and populate it
-        warehouse_query = Warehouse.objects.get(slug=request.data['slug'])
-        
+        warehouse_query = Warehouse.objects.get(slug=request.data['warehouse_slug'])
+
+       
         # get the list of vehicles and spare parts already available in the warehouse
         warehouse_vehicles_in_stock = list(warehouse_query.vehicles_in_stock.values())
         
-        # append newly received vehicles and spare parts to the existing list 
-        warehouse_vehicles_in_stock.append(received_vehicles)
+        # the list of vehicles in warehouse + new vehicles to be received
+        updated_vehicles_in_stock = []
         
-        # update the stock of vehicles and spare parts with the most up to date info
-        warehouse_query.vehicles_in_stock.set(warehouse_vehicles_in_stock)
+        #convert vehicles in stock ids to string to be able to store
+        if len(warehouse_vehicles_in_stock) > 0:
+            for vehicle in warehouse_vehicles_in_stock:
+                updated_vehicles_in_stock.append(str(vehicle['id']))
+        
+        
+        # append newly received vehicles and spare parts to the existing list
+        for vehicle in received_vehicles: 
+            updated_vehicles_in_stock.append(vehicle)   
+ 
+        
+        #update the stock of vehicles and spare parts with the most up to date info
+        warehouse_query.vehicles_in_stock.set(updated_vehicles_in_stock)
+        
         
         # save warehouse to update the details
         warehouse_query.save()
         
+        warehouse_serializer = WarehouseDetailSerializer(warehouse_query, many=False)
+        
+        
+        #update all the vehicles with the latest status
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(current_location="warehouse", custodian=warehouse_serializer.data["name"])
+        
             
-        return Response({"supply received successfully"}, status=status.HTTP_200_OK)
+        return Response(warehouse_serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+
+class WarehouseSparePartsSupplyReceiveView(APIView):
+
+    def post(self, request, format=None):
+        supply_query = WarehouseSparePartsSupply.objects.get(
+            slug=request.data['supply_slug'])
+
+        # save the list of received vehicles and spare parts
+        received_spare_parts = request.data['spare_parts_received']
+
+        # get the list of vehicles that exist
+        spare_parts_in_container = supply_query.spare_parts_supplied.values()
+
+        # list of all vehicles and spare parts yet to be received
+        spare_parts_in_stock = []
+
+        # perform a simple check to remove every vehicle and spare part that are lined up to be received
+        for part in spare_parts_in_container:
+            if str(part['id']) not in received_spare_parts:
+                spare_parts_in_stock.append(str(part['id']))
+
+        # update very instance that need update with the most up to date details
+        supply_query.spare_parts_supplied.set(spare_parts_in_stock)
+        supply_query.spare_parts_supplied_received = int(
+            supply_query.spare_parts_supplied_received) + len(received_spare_parts)
+        supply_query.received_date = datetime.datetime.now()
+
+        # save the supply details
+        supply_query.save()
+
+        # now find the warehouse that is meant to received their products and populate it
+        warehouse_query = Warehouse.objects.get(
+            slug=request.data['warehouse_slug'])
+
+        # get the list of vehicles and spare parts already available in the warehouse
+        warehouse_spare_parts_in_stock = list(
+            warehouse_query.spare_parts_in_stock.values())
+
+        # the list of vehicles in warehouse + new vehicles to be received
+        updated_spare_parts_in_stock = []
+
+        #convert vehicles in stock ids to string to be able to store
+        if len(warehouse_spare_parts_in_stock) > 0:
+            for part in warehouse_spare_parts_in_stock:
+                updated_spare_parts_in_stock.append(str(part['id']))
+
+        # append newly received vehicles and spare parts to the existing list
+        for part in received_spare_parts:
+            updated_spare_parts_in_stock.append(part)
+
+        #update the stock of vehicles and spare parts with the most up to date info
+        warehouse_query.spare_parts_in_stock.set(updated_spare_parts_in_stock)
+
+        # save warehouse to update the details
+        warehouse_query.save()
+
+        warehouse_serializer = WarehouseDetailSerializer(
+            warehouse_query, many=False)
+
+        #update all the vehicles with the latest status
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(
+            current_location="warehouse", custodian=warehouse_serializer.data["name"])
+
+        return Response(warehouse_serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 
@@ -408,6 +500,7 @@ class WarehouseSparePartsSupplyListView(ListCreateAPIView):
         return serializer.save(spare_parts_supplied_quantity=spare_part_supplied_quantity)
 
 
+
 class WarehouseSparePartsSupplyDetailView(RetrieveAPIView):
     queryset = WarehouseSparePartsSupply.objects.all()
     serializer_class = WarehouseSparePartsSupplySerializer
@@ -415,48 +508,417 @@ class WarehouseSparePartsSupplyDetailView(RetrieveAPIView):
     lookup_field = "slug"
 
 
-class WarehouseSparePartsSupplyReceiveView(APIView):
 
-    def post(self, request):
-        supply_query = WarehouseSparePartsSupply.objects.get(
-            slug=request.data['slug'])
+class BranchVehiclesSupplyListView(ListCreateAPIView):
+    queryset = BranchVehiclesSupply.objects.all()
+    serializer_class = BranchVehiclesSupplySerializer
+
+    def perform_create(self, serializer):
+        vehicles_supplied_quantity = len(
+            serializer.validated_data['vehicles_supplied'])
+        warehouse_id = self.request.data['warehouse']
+
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+
+        warehouse_vehicles = list(warehouse.vehicles_in_stock.values())
+        vehicles_to_be_supplied = self.request.data['vehicles_supplied']
+
+        remaining_vehicles_in_warehouse = []
+
+        for vehicle in warehouse_vehicles:
+            if str(vehicle['id']) not in vehicles_to_be_supplied:
+                remaining_vehicles_in_warehouse.append(str(vehicle['id']))
+
+        warehouse.vehicles_in_stock.set(remaining_vehicles_in_warehouse)
+        warehouse.save()
+
+        return serializer.save(vehicles_supplied_quantity=vehicles_supplied_quantity)
+
+
+class BranchVehiclesSupplyDetailView(RetrieveAPIView):
+    queryset = BranchVehiclesSupply.objects.all()
+    serializer_class = BranchVehiclesSupplySerializer
+    # permission_classes = [AdminsOnly]
+    lookup_field = "slug"
+    
+    
+class BranchVehiclesSupplyReceiveView(APIView):
+
+    def post(self, request, format=None):
+        supply_query = BranchVehiclesSupply.objects.get(
+            slug=request.data['supply_slug'])
 
         # save the list of received vehicles and spare parts
-        received_spare_parts = request.data['spare_parts_received']
+        received_vehicles = request.data['vehicles_received']
 
-        # get the list of spare parts and vehicles that exist
-        spare_parts_in_container = supply_query.spare_parts_supplied.values()
+        # get the list of vehicles that exist
+        vehicles_in_warehouse = supply_query.vehicles_supplied.values()
 
         # list of all vehicles and spare parts yet to be received
-        spare_parts_in_stock = []
+        vehicles_in_stock = []
 
         # perform a simple check to remove every vehicle and spare part that are lined up to be received
-        for part in spare_parts_in_container:
-            if str(part['id']) not in received_spare_parts:
-                spare_parts_in_stock.append(str(part['id']))
+        for vehicle in vehicles_in_warehouse:
+            if str(vehicle['id']) not in received_vehicles:
+                vehicles_in_stock.append(str(vehicle['id']))
 
         # update very instance that need update with the most up to date details
-        supply_query.vehicles_supplied.set(spare_parts_in_stock)
-        supply_query.vehicles_supplied = received_spare_parts.count()
+        supply_query.vehicles_supplied.set(vehicles_in_stock)
+        supply_query.vehicles_supplied_received = int(
+            supply_query.vehicles_supplied_received) + len(received_vehicles)
         supply_query.received_date = datetime.datetime.now()
 
         # save the supply details
         supply_query.save()
 
         # now find the warehouse that is meant to received their products and populate it
-        warehouse_query = Warehouse.objects.get(slug=request.data['slug'])
+        branch_query = Branch.objects.get(
+            slug=request.data['branch_slug'])
 
         # get the list of vehicles and spare parts already available in the warehouse
-        warehouse_spare_parts_in_stock = list(
-            warehouse_query.spare_parts_in_stock.values())
+        branch_vehicles_in_stock = list(
+            branch_query.vehicles_in_stock.values())
+
+        # the list of vehicles in warehouse + new vehicles to be received
+        updated_vehicles_in_stock = []
+
+        #convert vehicles in stock ids to string to be able to store
+        if len(branch_vehicles_in_stock) > 0:
+            for vehicle in branch_vehicles_in_stock:
+                updated_vehicles_in_stock.append(str(vehicle['id']))
 
         # append newly received vehicles and spare parts to the existing list
-        warehouse_spare_parts_in_stock.append(received_spare_parts)
+        for vehicle in received_vehicles:
+            updated_vehicles_in_stock.append(vehicle)
 
-        # update the stock of vehicles and spare parts with the most up to date info
-        warehouse_query.vehicles_in_stock.set(warehouse_spare_parts_in_stock)
+        #update the stock of vehicles and spare parts with the most up to date info
+        branch_query.vehicles_in_stock.set(updated_vehicles_in_stock)
 
         # save warehouse to update the details
-        warehouse_query.save()
+        branch_query.save()
 
-        return Response({"supply received successfully"}, status=status.HTTP_200_OK)
+        branch_serializer = BranchDetailSerializer(
+            branch_query, many=False)
+
+        #update all the vehicles with the latest status
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(
+            current_location="branch", custodian=branch_serializer.data["name"])
+
+        return Response(branch_serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+class BranchSparePartsSupplyListView(ListCreateAPIView):
+    queryset = BranchSparePartsSupply.objects.all()
+    serializer_class = BranchSparePartsSupplySerializer
+
+    def perform_create(self, serializer):
+        spare_parts_supplied_quantity = len(
+            serializer.validated_data['spare_parts_supplied'])
+        warehouse_id = self.request.data['warehouse']
+
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+
+        warehouse_spare_parts = list(warehouse.spare_parts_in_stock.values())
+        spare_parts_to_be_supplied = self.request.data['spare_parts_supplied']
+
+        remaining_spare_parts_in_warehouse = []
+
+        for part in warehouse_spare_parts:
+            if str(part['id']) not in spare_parts_to_be_supplied:
+                remaining_spare_parts_in_warehouse.append(str(part['id']))
+
+        warehouse.spare_parts_in_stock.set(remaining_spare_parts_in_warehouse)
+        warehouse.save()
+
+        return serializer.save(spare_parts_supplied_quantity=spare_parts_supplied_quantity)
+
+
+class BranchSparePartsSupplyDetailView(RetrieveAPIView):
+    queryset = BranchSparePartsSupply.objects.all()
+    serializer_class = BranchSparePartsSupplySerializer
+    # permission_classes = [AdminsOnly]
+    lookup_field = "slug"
+
+
+class BranchSparePartsSupplyReceiveView(APIView):
+
+    def post(self, request, format=None):
+        supply_query = BranchSparePartsSupply.objects.get(
+            slug=request.data['supply_slug'])
+
+        # save the list of received vehicles and spare parts
+        received_spare_parts = request.data['spare_parts_received']
+
+        # get the list of vehicles that exist
+        spare_parts_in_warehouse = supply_query.spare_parts_supplied.values()
+
+        # list of all vehicles and spare parts yet to be received
+        spare_parts_in_stock = []
+
+        # perform a simple check to remove every vehicle and spare part that are lined up to be received
+        for part in spare_parts_in_warehouse:
+            if str(part['id']) not in received_spare_parts:
+                spare_parts_in_stock.append(str(part['id']))
+
+        # update very instance that need update with the most up to date details
+        supply_query.spare_parts_supplied.set(spare_parts_in_stock)
+        supply_query.spare_parts_supplied_received = int(
+            supply_query.spare_parts_supplied_received) + len(received_spare_parts)
+        supply_query.received_date = datetime.datetime.now()
+
+        # save the supply details
+        supply_query.save()
+
+        # now find the warehouse that is meant to received their products and populate it
+        branch_query = Branch.objects.get(
+            slug=request.data['branch_slug'])
+
+        # get the list of vehicles and spare parts already available in the warehouse
+        branch_spare_parts_in_stock = list(
+            branch_query.spare_parts_in_stock.values())
+
+        # the list of vehicles in warehouse + new vehicles to be received
+        updated_spare_parts_in_stock = []
+
+        #convert vehicles in stock ids to string to be able to store
+        if len(branch_spare_parts_in_stock) > 0:
+            for part in branch_spare_parts_in_stock:
+                updated_spare_parts_in_stock.append(str(part['id']))
+
+        # append newly received vehicles and spare parts to the existing list
+        for part in received_spare_parts:
+            updated_spare_parts_in_stock.append(part)
+
+        #update the stock of vehicles and spare parts with the most up to date info
+        branch_query.spare_parts_in_stock.set(updated_spare_parts_in_stock)
+
+        # save warehouse to update the details
+        branch_query.save()
+
+        branch_serializer = BranchDetailSerializer(
+            branch_query, many=False)
+
+        #update all the vehicles with the latest status
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(
+            current_location="branch", custodian=branch_serializer.data["name"])
+
+        return Response(branch_serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+
+class UpdateWarehouseMissingVehicles(APIView):
+    
+    def post(self, request):
+        warehouse_id = request.data['warehouse']
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+        
+        vehicles_in_stock = request.data['vehicles_in_stock']
+        vehicles_missing = request.data['vehicles_missing']
+        
+        
+        warehouse.vehicles_in_stock.set(vehicles_in_stock)
+        warehouse.vehicles_missing.set(vehicles_missing)
+        
+        warehouse.save()
+        
+        warehouse.vehicles_missing_count = len(vehicles_missing)
+        warehouse.vehicles_in_stock_count = len(vehicles_in_stock)
+        
+        serializer = WarehouseDetailSerializer(warehouse, many=False)
+        
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(current_location="warehouse")
+        Vehicle.objects.filter(id__in=vehicles_missing).update(current_location="missing")
+        
+        return Response(serializer.data)
+
+
+
+class UpdateBranchMissingVehicles(APIView):
+
+    def post(self, request):
+        branch_id = request.data['branch']
+        branch = Branch.objects.get(id=branch_id)
+
+        vehicles_in_stock = request.data['vehicles_in_stock']
+        vehicles_missing = request.data['vehicles_missing']
+
+        branch.vehicles_in_stock.set(vehicles_in_stock)
+        branch.vehicles_missing.set(vehicles_missing)
+
+        branch.save()
+
+        branch.vehicles_missing_count = len(vehicles_missing)
+        branch.vehicles_in_stock_count = len(vehicles_in_stock)
+
+        serializer = WarehouseDetailSerializer(branch, many=False)
+
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(
+            current_location="branch")
+        Vehicle.objects.filter(id__in=vehicles_missing).update(
+            current_location="missing")
+
+        return Response(serializer.data)
+    
+
+
+class UpdateWarehouseMissingSpareParts(APIView):
+    
+    def post(self, request):
+        warehouse_id = request.data['warehouse']
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+        
+        spare_parts_in_stock = request.data['spare_parts_in_stock']
+        spare_parts_missing = request.data['spare_parts_missing']
+        
+        
+        warehouse.spare_parts_in_stock.set(spare_parts_in_stock)
+        warehouse.spare_parts_missing.set(spare_parts_missing)
+        
+        warehouse.save()
+        
+        warehouse.spare_part_missing_count = len(spare_parts_missing)
+        warehouse.spare_part_in_stock_count = len(spare_parts_in_stock)
+        
+        serializer = WarehouseDetailSerializer(warehouse, many=False)
+        
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(current_location="warehouse")
+        SparePart.objects.filter(id__in=spare_parts_missing).update(current_location="missing")
+        
+        return Response(serializer.data)
+
+
+
+class UpdateBranchMissingSpareParts(APIView):
+    
+    def post(self, request):
+        branch_id = request.data['branch']
+        branch = Branch.objects.get(id=branch_id)
+        
+        spare_parts_in_stock = request.data['spare_parts_in_stock']
+        spare_parts_missing = request.data['spare_parts_missing']
+        
+        
+        branch.spare_parts_in_stock.set(spare_parts_in_stock)
+        branch.spare_parts_missing.set(spare_parts_missing)
+        
+        branch.save()
+        
+        branch.spare_part_missing_count = len(spare_parts_missing)
+        branch.spare_part_in_stock_count = len(spare_parts_in_stock)
+        
+        serializer = WarehouseDetailSerializer(branch, many=False)
+        
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(current_location="branch")
+        SparePart.objects.filter(id__in=spare_parts_missing).update(current_location="missing")
+        
+        return Response(serializer.data)
+
+
+
+
+class UpdateWarehouseDamagedVehicles(APIView):
+    
+    def post(self, request):
+        warehouse_id = request.data['warehouse']
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+        
+        vehicles_in_stock = request.data['vehicles_in_stock']
+        vehicles_damaged = request.data['vehicles_damaged']
+        
+        
+        warehouse.vehicles_in_stock.set(vehicles_in_stock)
+        warehouse.vehicles_damaged.set(vehicles_damaged)
+        
+        warehouse.save()
+        
+        warehouse.vehicles_damaged_count = len(vehicles_damaged)
+        warehouse.vehicles_in_stock_count = len(vehicles_in_stock)
+        
+        serializer = WarehouseDetailSerializer(warehouse, many=False)
+        
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(current_location="warehouse")
+        Vehicle.objects.filter(id__in=vehicles_damaged).update(current_location="damaged")
+        
+        return Response(serializer.data)
+
+
+
+class UpdateBranchDamagedVehicles(APIView):
+
+    def post(self, request):
+        branch_id = request.data['branch']
+        branch = Branch.objects.get(id=branch_id)
+
+        vehicles_in_stock = request.data['vehicles_in_stock']
+        vehicles_damaged = request.data['vehicles_damaged']
+
+        branch.vehicles_in_stock.set(vehicles_in_stock)
+        branch.vehicles_damaged.set(vehicles_damaged)
+
+        branch.save()
+
+        branch.vehicles_damaged_count = len(vehicles_damaged)
+        branch.vehicles_in_stock_count = len(vehicles_in_stock)
+
+        serializer = WarehouseDetailSerializer(branch, many=False)
+
+        Vehicle.objects.filter(id__in=vehicles_in_stock).update(current_location="branch")
+        Vehicle.objects.filter(id__in=vehicles_damaged).update(current_location="damaged")
+
+        return Response(serializer.data)
+
+
+
+class UpdateWarehouseDamagedSpareParts(APIView):
+    
+    def post(self, request):
+        warehouse_id = request.data['warehouse']
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+        
+        spare_parts_in_stock = request.data['spare_parts_in_stock']
+        spare_parts_damaged = request.data['spare_parts_damaged']
+        
+        
+        warehouse.spare_parts_in_stock.set(spare_parts_in_stock)
+        warehouse.spare_parts_damaged.set(spare_parts_damaged)
+        
+        warehouse.save()
+        
+        warehouse.spare_part_damaged_count = len(spare_parts_damaged)
+        warehouse.spare_part_in_stock_count = len(spare_parts_in_stock)
+        
+        serializer = WarehouseDetailSerializer(warehouse, many=False)
+        
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(current_location="warehouse")
+        SparePart.objects.filter(id__in=spare_parts_damaged).update(current_location="damaged")
+        
+        return Response(serializer.data)
+
+
+
+class UpdateBranchDamagedSpareParts(APIView):
+    
+    def post(self, request):
+        branch_id = request.data['branch']
+        branch = Branch.objects.get(id=branch_id)
+        
+        spare_parts_in_stock = request.data['spare_parts_in_stock']
+        spare_parts_damaged = request.data['spare_parts_damaged']
+        
+        
+        branch.spare_parts_in_stock.set(spare_parts_in_stock)
+        branch.spare_parts_damaged.set(spare_parts_damaged)
+        
+        branch.save()
+        
+        branch.spare_part_damaged_count = len(spare_parts_damaged)
+        branch.spare_part_in_stock_count = len(spare_parts_in_stock)
+        
+        serializer = WarehouseDetailSerializer(branch, many=False)
+        
+        SparePart.objects.filter(id__in=spare_parts_in_stock).update(current_location="branch")
+        SparePart.objects.filter(id__in=spare_parts_damaged).update(current_location="damaged")
+        
+        return Response(serializer.data)

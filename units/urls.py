@@ -1,9 +1,10 @@
-from .views import BranchListView, BranchDetailsView, ServiceShopDetailsView, ServiceShopListView, WarehouseListView, WarehouseDetailsView, WarehouseRetrieveView
+from .views import BranchListView, BranchDetailsView, BranchRetrieveView, ServiceShopDetailsView, ServiceShopListView, WarehouseListView, WarehouseDetailsView, WarehouseRetrieveView
 from django.urls import path
 
 
 urlpatterns = [
     path('branches/', BranchListView.as_view(), name="Branches"),
+    path('branches/get/', BranchRetrieveView.as_view(), name="Get-Branch"),
     path('branches/<slug>/', BranchDetailsView.as_view(), name="Branch"),
 
     path('warehouses/', WarehouseListView.as_view(), name="Warehouses"),

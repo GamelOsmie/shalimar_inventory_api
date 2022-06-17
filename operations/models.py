@@ -1,5 +1,4 @@
 
-from enum import unique
 from django.db import models
 from django.template.defaultfilters import slugify
 from units.models import Branch, ServiceShop, Warehouse
@@ -178,8 +177,9 @@ class WarehouseVehiclesSupply(models.Model):
 
     def __str__(self):
         return self.supply_code
-
-
+    
+    class Meta:
+        ordering = ['-supply_date']
 
     
 class WarehouseSparePartsSupply(models.Model):
@@ -203,7 +203,71 @@ class WarehouseSparePartsSupply(models.Model):
 
     def __str__(self):
         return self.supply_code
+    
+    
+    class Meta:
+        ordering = ['-supply_date']
 
 
+
+    
+class BranchVehiclesSupply(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=50, blank=True)
+    supply_code = ShortUUIDField(length=7, max_length=10, prefix="BVS", alphabet="1234567890", editable=False, unique=True)
+    
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, blank=False, related_name="warehouse_vehicles_for_supply")
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, blank=False, related_name="vehicle_branches")
+    
+    vehicles_supplied = models.ManyToManyField(Vehicle, related_name ='branch_vehicles_supplied', blank=True)
+    vehicles_supplied_quantity = models.CharField(max_length=10, blank=True)
+    vehicles_supplied_received = models.CharField(max_length=10, blank=True, default=0)
+
+    supply_date = models.DateTimeField(auto_now_add=True)
+    received_date = models.DateTimeField(blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.supply_code)
+        super(BranchVehiclesSupply, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.supply_code
+    
+    class Meta:
+        ordering = ['-supply_date']
+    
+   
+
+    
+class BranchSparePartsSupply(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(max_length=50, blank=True)
+    supply_code = ShortUUIDField(length=7, max_length=10, prefix="BPS", alphabet="1234567890", editable=False, unique=True)
+    
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, blank=False, related_name="warehouse_spare_part_for_supply")
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, blank=False, related_name="spare_part_branches")
+    
+    spare_parts_supplied = models.ManyToManyField(SparePart, related_name ='branch_vehicles_supplied', blank=True)
+    spare_parts_supplied_quantity = models.CharField(max_length=10, blank=True)
+    spare_parts_supplied_received = models.CharField(max_length=10, blank=True, default=0)
+
+    supply_date = models.DateTimeField(auto_now_add=True)
+    received_date = models.DateTimeField(blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.supply_code)
+        super(BranchSparePartsSupply, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.supply_code
+    
+    
+    class Meta:
+        ordering = ['-supply_date']
+        
+        
+        
+
+    
 
     

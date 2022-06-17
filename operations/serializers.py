@@ -1,7 +1,5 @@
 from rest_framework import serializers
-
-from units.serializers import WarehouseSerializer
-from .models import  CommercialInvoice, ProformaInvoice, Shipment, Container, WarehouseSparePartsSupply, WarehouseVehiclesSupply
+from .models import  BranchSparePartsSupply, BranchVehiclesSupply, CommercialInvoice, ProformaInvoice, Shipment, Container, WarehouseSparePartsSupply, WarehouseVehiclesSupply
 from vehicles.serializers import SparePartSerializer, VehicleSerializer
 
 
@@ -43,11 +41,48 @@ class WarehouseVehiclesSupplySerializer(serializers.ModelSerializer):
         
     
     def to_representation(self, instance):
+        from units.serializers import WarehouseSerializer
         response = super().to_representation(instance)
         response["warehouse"] = WarehouseSerializer(instance.warehouse).data['name']
         response["container"] = ContainerSerializer(instance.container).data['container_number']
+        response["vehicles_supplied"] = VehicleSerializer(instance.vehicles_supplied.all(), many=True).data
         return response
         
+        
+
+class BranchVehiclesSupplySerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = BranchVehiclesSupply
+        fields = "__all__"
+        
+    
+    def to_representation(self, instance):
+        from units.serializers import BranchSerializer, WarehouseSerializer
+        response = super().to_representation(instance)
+        response["warehouse"] = WarehouseSerializer(instance.warehouse).data['name']
+        response["branch"] = BranchSerializer(instance.branch).data['name']
+        response["vehicles_supplied"] = VehicleSerializer(instance.vehicles_supplied.all(), many=True).data
+        return response
+        
+        
+
+class BranchSparePartsSupplySerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = BranchSparePartsSupply
+        fields = "__all__"
+        
+    
+    def to_representation(self, instance):
+        from units.serializers import BranchSerializer, WarehouseSerializer
+        response = super().to_representation(instance)
+        response["warehouse"] = WarehouseSerializer(instance.warehouse).data['name']
+        response["branch"] = BranchSerializer(instance.branch).data['name']
+        response["spare_parts_supplied"] = SparePartSerializer(instance.spare_parts_supplied.all(), many=True).data
+        return response
+    
+
 
 class WarehouseSparePartsSupplySerializer(serializers.ModelSerializer):
     
@@ -57,9 +92,11 @@ class WarehouseSparePartsSupplySerializer(serializers.ModelSerializer):
         
     
     def to_representation(self, instance):
+        from units.serializers import WarehouseSerializer
         response = super().to_representation(instance)
         response["warehouse"] = WarehouseSerializer(instance.warehouse).data['name']
         response["container"] = ContainerSerializer(instance.container).data['container_number']
+        response["spare_parts_supplied"] = SparePartSerializer(instance.spare_parts_supplied.all(), many=True).data
         return response
 
     
@@ -67,7 +104,6 @@ class WarehouseSparePartsSupplySerializer(serializers.ModelSerializer):
 class ContainerSerializer(serializers.ModelSerializer):
     vehicle_count = serializers.ReadOnlyField()
     spare_part_count = serializers.ReadOnlyField()
-    # supplies = WarehouseVehiclesSupplySerializer(source='vehicles_supplies', many=True, read_only=True)
 
     class Meta:
         model = Container

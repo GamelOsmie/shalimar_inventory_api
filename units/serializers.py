@@ -1,6 +1,6 @@
-from threading import local
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
+from operations.serializers import BranchSparePartsSupplySerializer, BranchVehiclesSupplySerializer
 
 from vehicles.serializers import SparePartSerializer, VehicleSerializer
 
@@ -39,18 +39,16 @@ class BranchDetailSerializer(ModelSerializer):
     
     staff_count = serializers.ReadOnlyField()
     users_count = serializers.ReadOnlyField()
-
+    expected_vehicles = serializers.ReadOnlyField()
+    expected_spare_parts = serializers.ReadOnlyField()
+    
 
     class Meta:
         model = Branch
         fields = "__all__"
-        
-        def to_representation(self, instance):
-            response = super().to_representation(instance)
-            response["vehicles"] = VehicleSerializer(instance.vehicles.all(), many=True).data
-            response["spare_parts"] = SparePartSerializer(instance.spare_parts.all(), many=True).data
-            return response
-        
+        depth = 3
+
+   
 
 class WarehouseDetailSerializer(ModelSerializer):
     vehicles_in_stock_count = serializers.ReadOnlyField()
@@ -63,18 +61,18 @@ class WarehouseDetailSerializer(ModelSerializer):
     
     staff_count = serializers.ReadOnlyField()
     users_count = serializers.ReadOnlyField()
+    expected_vehicles = serializers.ReadOnlyField()
+    expected_spare_parts = serializers.ReadOnlyField()
+    
+    vehicle_supply = BranchVehiclesSupplySerializer(source='warehouse_vehicles_for_supply', many=True, read_only=True)
+    spare_part_supply = BranchSparePartsSupplySerializer(source='warehouse_spare_part_for_supply', many=True, read_only=True)
 
 
     class Meta:
         model = Warehouse
         fields = "__all__"
-        
-        def to_representation(self, instance):
-            response = super().to_representation(instance)
-            response["vehicles"] = VehicleSerializer(instance.vehicles.all(), many=True).data
-            response["spare_parts"] = SparePartSerializer(instance.spare_parts.all(), many=True).data
-            return response
-        
+        depth = 3
+    
         
 
 class ServiceShopDetailSerializer(ModelSerializer):
@@ -93,10 +91,4 @@ class ServiceShopDetailSerializer(ModelSerializer):
     class Meta:
         model = ServiceShop
         fields = "__all__"
-        
-        def to_representation(self, instance):
-            response = super().to_representation(instance)
-            response["vehicles"] = VehicleSerializer(instance.vehicles.all(), many=True).data
-            response["spare_parts"] = SparePartSerializer(instance.spare_parts.all(), many=True).data
-            return response
-        
+        depth = 3

@@ -71,11 +71,12 @@ class Vehicle(models.Model):
         ('at sea', 'At Sea'),
         ('warehouse', 'Warehouse'),
         ('branch', 'Branch'),
-        ('service station', 'Service Station'),
+        ('service shop', 'Service Shop'),
         ('finance sale', 'Finance Sale'),
         ('corporate sale', 'Corporate Sale'),
         ('wholesale', 'Wholesale'),
         ('retail', 'Retail'),
+        ('damaged', 'Damaged'),
         ('missing', 'Missing'),
     )
     
@@ -149,7 +150,9 @@ class SparePart(models.Model):
         ('finance sale', 'Finance Sale'),
         ('corporate sale', 'Corporate Sale'),
         ('wholesale', 'Wholesale'),
-        ('retail', 'Retail')
+        ('retail', 'Retail'),
+        ('damaged', 'Damaged'),
+        ('missing', 'Missing'),
     )
     
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)

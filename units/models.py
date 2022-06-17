@@ -65,10 +65,28 @@ class Branch(models.Model):
     
     def users_count(self):
         return User.objects.filter(workplace=self.name).count()
-           
-
-
+    
+    
+    def expected_vehicles(self):
+        branch = self.vehicle_branches.all()
+        expected = 0
+        for item in branch:
+            difference = int(item.vehicles_supplied_quantity) - int(item.vehicles_supplied_received)
+            expected += difference
+            
+        return expected
         
+        
+    def expected_spare_parts(self):
+        branch = self.spare_part_branches.all()
+        expected = 0
+        for item in branch:
+            difference = int(item.spare_parts_supplied_quantity) - int(item.spare_parts_supplied_received)
+            expected += difference
+            
+        return expected
+    
+     
         
 class Warehouse(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
@@ -129,9 +147,34 @@ class Warehouse(models.Model):
         
     def users_count(self):
         return User.objects.filter(workplace=self.name).count()
-      
-      
+    
         
+    def expected_vehicles(self):
+        warehouse = self.vehicle_warehouses.all()
+        expected = 0
+        for item in warehouse:
+            difference = int(item.vehicles_supplied_quantity) - int(item.vehicles_supplied_received)
+            expected += difference
+            
+        return expected
+        
+        
+    def expected_spare_parts(self):
+        warehouse = self.spare_part_warehouses.all()
+        expected = 0
+        for item in warehouse:
+            difference = int(item.spare_parts_supplied_quantity) - int(item.spare_parts_supplied_received)
+            expected += difference
+            
+        return expected
+    
+    def vehicle_supplies(self):
+        return self.warehouse_vehicles_for_supply.all()
+    
+    def spare_part_supplies(self):
+        return self.warehouse_spare_parts_for_supply.all()
+           
+          
         
 class ServiceShop(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
