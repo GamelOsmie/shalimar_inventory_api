@@ -1,4 +1,6 @@
+from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView, UpdateAPIView
+from rest_framework.views import APIView
 from .models import Brand, Model, SparePart, SparePartType, Tax, Vehicle
 from .serializers import BrandSerializer, SparePartSerializer,  SparePartTypeSerializer, TaxSerializer, VehicleModelSerializer, VehicleSerializer
 from rest_framework.filters import SearchFilter
@@ -27,9 +29,20 @@ class ModelListView(ListCreateAPIView):
     filter_backends = [SearchFilter]
     search_fields = ('brand__name', 'name')
     
-    # def perform_create(self, serializer):
-    #     return serializer.save(tax=1)
 
+
+class SpecificModelListView(APIView):
+    
+    def get(self, request):
+        brand = request.GET.get('brand')
+    
+        queryset = Model.objects.filter(brand__name=brand)
+        serializer = VehicleModelSerializer(queryset, many=True)
+        
+        return Response(serializer.data)
+  
+        
+    
 
 class ModelDetailView(RetrieveUpdateAPIView):
     queryset = Model.objects.all()

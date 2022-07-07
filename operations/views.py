@@ -1,4 +1,3 @@
-from curses import raw
 from rest_framework.response import Response
 from rest_framework.generics import  RetrieveAPIView,ListCreateAPIView, RetrieveUpdateAPIView, ListAPIView
 from rest_framework.views import APIView
@@ -15,7 +14,6 @@ import datetime
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from vehicles.models import Brand, Model, SparePart, SparePartType, Vehicle
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
 

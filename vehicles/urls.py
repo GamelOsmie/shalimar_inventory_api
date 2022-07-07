@@ -1,4 +1,4 @@
-from .views import BrandListView, ModelListView, ModelDetailView, TaxDetailView, TaxListView, VehicleListView, SparePartListView,  SparePartDetailView, SparePartTypeListView,  SparePartTypeDetailView
+from .views import BrandListView, ModelListView, ModelDetailView, SpecificModelListView, TaxDetailView, TaxListView, VehicleListView, SparePartListView,  SparePartDetailView, SparePartTypeListView,  SparePartTypeDetailView
 from django.urls import path
 
 
@@ -9,6 +9,7 @@ urlpatterns = [
     path('brands/', BrandListView.as_view(), name="Brands"),
     
     path('models/', ModelListView.as_view(), name="Models"),
+    path('models/specific-brand/', SpecificModelListView.as_view(), name="Brand Models"),
     path('models/<slug>/', ModelDetailView.as_view(), name="Model"),
     
     path('vehicles/', VehicleListView.as_view(), name="Vehicles"),

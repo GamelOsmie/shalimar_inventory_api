@@ -86,7 +86,29 @@ class Branch(models.Model):
             
         return expected
     
-     
+    
+    def vehicles_sold(self):
+        sales = self.branch_sales.all()
+        
+        vehicle_qty = 0
+        
+        for sale in sales:
+            vehicle_qty += len(sale.vehicles_sold.values('id'))
+        
+        return vehicle_qty
+        
+
+    def spare_parts_sold(self):
+        sales = self.branch_sales.all()
+        
+        spare_part_qty = 0
+        
+        for sale in sales:
+            spare_part_qty += len(sale.spare_parts_sold.values('id'))
+        
+        return spare_part_qty
+        
+
         
 class Warehouse(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
@@ -171,8 +193,38 @@ class Warehouse(models.Model):
     def vehicle_supplies(self):
         return self.warehouse_vehicles_for_supply.all()
     
+    
     def spare_part_supplies(self):
         return self.warehouse_spare_parts_for_supply.all()
+    
+    
+    def vehicles_sold(self):
+        return self.wholesale_vehicle_sales.all().count()
+    
+    def spare_parts_sold(self):
+        return self.wholesale_spare_part_sales.all().count()
+    
+    
+    def vehicles_sold(self):
+        sales = self.warehouse_sales.all()
+
+        vehicle_qty = 0
+
+        for sale in sales:
+            vehicle_qty += len(sale.vehicles_sold.values('id'))
+
+        return vehicle_qty
+
+    def spare_parts_sold(self):
+        sales = self.warehouse_sales.all()
+
+        spare_part_qty = 0
+
+        for sale in sales:
+            spare_part_qty += len(sale.spare_parts_sold.values('id'))
+
+        return spare_part_qty
+
            
           
         

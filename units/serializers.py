@@ -42,6 +42,9 @@ class BranchDetailSerializer(ModelSerializer):
     expected_vehicles = serializers.ReadOnlyField()
     expected_spare_parts = serializers.ReadOnlyField()
     
+    spare_parts_sold = serializers.ReadOnlyField()
+    vehicles_sold = serializers.ReadOnlyField()
+    
 
     class Meta:
         model = Branch
@@ -66,6 +69,9 @@ class WarehouseDetailSerializer(ModelSerializer):
     
     vehicle_supply = BranchVehiclesSupplySerializer(source='warehouse_vehicles_for_supply', many=True, read_only=True)
     spare_part_supply = BranchSparePartsSupplySerializer(source='warehouse_spare_part_for_supply', many=True, read_only=True)
+
+    spare_parts_sold = serializers.ReadOnlyField()
+    vehicles_sold = serializers.ReadOnlyField()
 
 
     class Meta:
