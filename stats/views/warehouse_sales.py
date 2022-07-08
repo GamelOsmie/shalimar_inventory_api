@@ -43,7 +43,7 @@ class WarehouseSalesStats(APIView):
                
         # day's stats 
         daily_data = wholesale_query.filter(sold_at__year=current_year).filter(sold_at__week=current_week).filter(sold_at__gt=yesterday).values('vehicles_sold', 'spare_parts_sold')
-
+        print(daily_data)
         
         day_vehicles_sold = 0
         day_spare_parts_sold = 0
@@ -342,7 +342,7 @@ class WarehouseSalesTrend(APIView):
             warehouse = Warehouse.objects.get(name=user_workplace)
         
                 
-        all_time_sales = Wholesale.prefetch_related('spare_parts_sold', 'vehicles_sold').objects.filter(warehouse=warehouse)
+        all_time_sales = Wholesale.objects.filter(warehouse=warehouse)
         years = all_time_sales.datetimes("sold_at", kind="year")
         
     
@@ -362,7 +362,7 @@ class WarehouseSalesTrend(APIView):
             # print(f"Month: {year.strftime('%Y')}, Spare Parts Total: {spare_parts_year_total}, Vehicles Total: {vehicles_year_total}")
 
 
-            context = {
+        context = {
                 "sales_by_year": years_sales
             }
             

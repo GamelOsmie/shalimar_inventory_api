@@ -362,8 +362,6 @@ class BranchSalesTrend(APIView):
             # print(f"Month: {year.strftime('%Y')}, Spare Parts Total: {spare_parts_year_total}, Vehicles Total: {vehicles_year_total}")
 
 
-            context = {
-                "sales_by_year": years_sales
-            }
+        context = {"sales_by_year": years_sales}
             
         return Response(context)
